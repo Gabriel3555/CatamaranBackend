@@ -78,53 +78,7 @@ public class BoatController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{boatId}/owner/{ownerId}")
-    public ResponseEntity<BoatEntity> assignOwner(
-            @PathVariable Long boatId,
-            @PathVariable Long ownerId,
-            @RequestParam int months,
-            @RequestParam Double monthlyPayment) {
 
-        Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
-        if (boatOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        Optional<UserEntity> ownerOpt = userRepository.findById(ownerId);
-        if (ownerOpt.isEmpty()) {
-            return ResponseEntity.badRequest().build(); // Owner not found
-        }
-
-        // Validar parámetros
-        if (months < 1 || months > 12) {
-            return ResponseEntity.badRequest().build(); // Months must be between 1 and 12
-        }
-
-        if (monthlyPayment <= 0) {
-            return ResponseEntity.badRequest().build(); // Monthly payment must be positive
-        }
-
-        BoatEntity boat = boatOpt.get();
-        boat.setOwner(ownerOpt.get());
-        BoatEntity updatedBoat = boatRepository.save(boat);
-
-        // Generar pagos mensuales
-        LocalDateTime currentDate = LocalDateTime.now();
-
-        for (int i = 0; i < months; i++) {
-            PaymentEntity payment = PaymentEntity.builder()
-                    .mount(monthlyPayment)
-                    .date(currentDate.plusMonths(i))
-                    .reason(ReasonPayment.PAGO)
-                    .status(PaymentStatus.POR_PAGAR)
-                    .boat(updatedBoat)
-                    .build();
-
-            paymentRepository.save(payment);
-        }
-
-        return ResponseEntity.ok(updatedBoat);
-    }
 
     @GetMapping("/{boatId}/documents")
     public ResponseEntity<List<BoatDocumentEntity>> getBoatDocuments(@PathVariable Long boatId) {
@@ -252,5 +206,59 @@ public class BoatController {
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @PutMapping("/{boatId}/owner/{ownerId}")
+    public ResponseEntity<BoatEntity> assignOwner(
+            @PathVariable Long boatId,
+            @PathVariable Long ownerId,
+            @RequestParam double installmentAmount,
+            @RequestParam int frequency) {
+
+        Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
+        if (boatOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Optional<UserEntity> ownerOpt = userRepository.findById(ownerId);
+        if (ownerOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        BoatEntity boat = boatOpt.get();
+        UserEntity owner = ownerOpt.get();
+
+        // Check if boat already has an owner
+        if (boat.getOwner() != null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Validate parameters
+        if (installmentAmount <= 0 || frequency < 1 || frequency > 11) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Calculate number of installments
+        double boatPrice = boat.getPrice() != null ? boat.getPrice() : 0.0;
+        int numberOfInstallments = (int) Math.ceil(boatPrice / installmentAmount);
+
+        // Assign owner to boat
+        boat.setOwner(owner);
+        BoatEntity savedBoat = boatRepository.save(boat);
+
+        // Create payment records
+        LocalDateTime currentDate = LocalDateTime.now();
+        for (int i = 0; i < numberOfInstallments; i++) {
+            PaymentEntity payment = PaymentEntity.builder()
+                    .mount(installmentAmount)
+                    .date(currentDate.plusMonths(i * frequency))
+                    .reason(ReasonPayment.PAGO)
+                    .status(PaymentStatus.POR_PAGAR)
+                    .boat(savedBoat)
+                    .build();
+            paymentRepository.save(payment);
+        }
+
+        return ResponseEntity.ok(savedBoat);
     }
 }

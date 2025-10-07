@@ -70,7 +70,7 @@ public class AuthController {
                     existing.setUsername(updatedUser.getUsername());
                     existing.setFullName(updatedUser.getFullName());
                     existing.setPhoneNumber(updatedUser.getPhoneNumber());
-                    existing.setRole(updatedUser.getRole());
+                    existing.setRole(Role.PROPIETARIO);
                     existing.setStatus(updatedUser.getStatus());
                     return ResponseEntity.ok(userRepository.save(existing));
                 })

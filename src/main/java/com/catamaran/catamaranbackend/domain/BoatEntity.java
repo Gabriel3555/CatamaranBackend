@@ -1,6 +1,7 @@
 package com.catamaran.catamaranbackend.domain;
 
 import com.catamaran.catamaranbackend.auth.infrastructure.entity.UserEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,10 +30,12 @@ public class BoatEntity {
     private Double price;
 
     @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<MaintananceEntity> maintanances;
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "document_id")
+    @JsonIgnore
     private List<BoatDocumentEntity> documents;
 
     @ManyToOne
@@ -40,6 +43,7 @@ public class BoatEntity {
     private UserEntity owner;
 
     @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<PaymentEntity> payments;
 
     @Column(nullable = false)

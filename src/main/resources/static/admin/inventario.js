@@ -67,7 +67,10 @@ async function loadBoats() {
             renderBoats();
         } else {
             console.error('Failed to load boats');
-            showFallbackData();
+            boats = [];
+            filteredBoats = [];
+            updateMetrics();
+            renderBoats();
         }
     } catch (error) {
         console.error('Error loading boats:', error);
@@ -96,41 +99,10 @@ async function loadOwners() {
         }
     } catch (error) {
         console.error('Error loading owners:', error);
-        // Fallback owners
-        owners = [
-            { id: 1, fullName: 'Carlos Rodríguez', email: 'carlos.rodriguez@email.com' },
-            { id: 2, fullName: 'María González', email: 'maria.gonzalez@email.com' },
-            { id: 3, fullName: 'Juan Martínez', email: 'juan.martinez@email.com' }
-        ];
+        owners = [];
     }
 }
 
-// Show fallback data when API fails
-function showFallbackData() {
-    boats = [
-        {
-            id: 1,
-            name: "Catamarán Manta Explorer",
-            type: "TURISMO",
-            model: "Explorer 2024",
-            location: "Cartagena",
-            owner: null,
-            price: 850000000
-        },
-        {
-            id: 2,
-            name: "Velero Alianza Premium",
-            type: "ALOJAMIENTO",
-            model: "Premium 2024",
-            location: "San Andrés",
-            owner: { fullName: "Carlos Rodríguez" },
-            price: 1200000000
-        }
-    ];
-    filteredBoats = [...boats];
-    updateMetrics();
-    renderBoats();
-}
 
 // Update metrics cards
 function updateMetrics() {
@@ -273,12 +245,37 @@ async function assignOwner(boatId) {
             </div>
             <div class="modal-body">
                 <p><strong>Embarcación:</strong> ${boat.name}</p>
+                <p><strong>Precio Total:</strong> ${formatPrice(boat.price || 0)}</p>
                 <div class="form-group">
                     <label for="ownerSelect">Seleccionar Propietario</label>
                     <select id="ownerSelect" required>
                         <option value="">Seleccionar propietario...</option>
                         ${owners.map(owner => `<option value="${owner.id}">${owner.fullName} (${owner.email})</option>`).join('')}
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="installmentAmount">Monto de Cuota (COP)</label>
+                    <input type="number" id="installmentAmount" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="frequency">Frecuencia de Pago (meses entre cuotas)</label>
+                    <select id="frequency" required>
+                        <option value="1">Cada mes</option>
+                        <option value="2">Cada 2 meses</option>
+                        <option value="3">Cada 3 meses</option>
+                        <option value="4">Cada 4 meses</option>
+                        <option value="5">Cada 5 meses</option>
+                        <option value="6">Cada 6 meses</option>
+                        <option value="7">Cada 7 meses</option>
+                        <option value="8">Cada 8 meses</option>
+                        <option value="9">Cada 9 meses</option>
+                        <option value="10">Cada 10 meses</option>
+                        <option value="11">Cada 11 meses</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Número de Cuotas Calculado</label>
+                    <input type="text" id="calculatedInstallments" readonly style="background-color: #f5f5f5;">
                 </div>
             </div>
             <div class="modal-footer">
@@ -290,6 +287,29 @@ async function assignOwner(boatId) {
 
     document.body.appendChild(ownerModal);
     ownerModal.style.display = 'block';
+
+    // Add event listeners for calculation
+    const installmentAmountInput = document.getElementById('installmentAmount');
+    const frequencySelect = document.getElementById('frequency');
+    const calculatedInstallmentsInput = document.getElementById('calculatedInstallments');
+
+    function calculateInstallments() {
+        const installmentAmount = parseFloat(installmentAmountInput.value) || 0;
+        const boatPrice = boat.price || 0;
+
+        if (installmentAmount > 0) {
+            const numInstallments = Math.ceil(boatPrice / installmentAmount);
+            calculatedInstallmentsInput.value = numInstallments;
+        } else {
+            calculatedInstallmentsInput.value = '';
+        }
+    }
+
+    installmentAmountInput.addEventListener('input', calculateInstallments);
+    frequencySelect.addEventListener('change', calculateInstallments);
+
+    // Initial calculation
+    calculateInstallments();
 }
 
 // Delete boat
@@ -428,35 +448,70 @@ async function saveBoat(event) {
 // Confirm owner assignment
 async function confirmAssignOwner(boatId) {
     const ownerSelect = document.getElementById('ownerSelect');
+    const installmentAmountInput = document.getElementById('installmentAmount');
+    const frequencySelect = document.getElementById('frequency');
+
     const ownerId = ownerSelect.value;
+    const installmentAmount = parseFloat(installmentAmountInput.value);
+    const frequency = parseInt(frequencySelect.value);
 
     if (!ownerId) {
         alert('Por favor selecciona un propietario');
         return;
     }
 
+    if (!installmentAmount || installmentAmount <= 0) {
+        alert('Por favor ingresa un monto de cuota válido');
+        return;
+    }
+
+    if (!frequency || frequency < 1 || frequency > 11) {
+        alert('Por favor selecciona una frecuencia válida');
+        return;
+    }
+
     try {
-        const response = await fetch(`/api/v1/boat/${boatId}/assign-owner/${ownerId}`, {
+        const response = await fetch(`/api/v1/boat/${boatId}/owner/${ownerId}?installmentAmount=${installmentAmount}&frequency=${frequency}`, {
             method: 'PUT',
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
-            const updatedBoat = await response.json();
-            const index = boats.findIndex(b => b.id === boatId);
-            if (index !== -1) {
-                boats[index] = updatedBoat;
+            try {
+                const updatedBoat = await response.json();
+                const index = boats.findIndex(b => b.id === boatId);
+                if (index !== -1) {
+                    boats[index] = updatedBoat;
+                }
+                filteredBoats = [...boats];
+                updateMetrics();
+                renderBoats();
+                closeOwnerModal();
+                alert('Propietario asignado exitosamente');
+            } catch (jsonError) {
+                console.error('Error parsing JSON response:', jsonError);
+                alert('Error al procesar la respuesta del servidor');
             }
-            filteredBoats = [...boats];
-            updateMetrics();
-            renderBoats();
-            closeOwnerModal();
-            alert('Propietario asignado exitosamente');
-        } else if (response.status === 400) {
-            alert('Esta embarcación ya tiene un propietario asignado');
         } else {
-            console.error('Failed to assign owner');
-            alert('Error al asignar propietario');
+            // Try to get error message from response
+            try {
+                const errorData = await response.json();
+                console.error('Server error:', errorData);
+                if (response.status === 400) {
+                    alert('Esta embarcación ya tiene un propietario asignado o los datos son inválidos');
+                } else {
+                    alert(`Error del servidor: ${errorData.message || 'Error desconocido'}`);
+                }
+            } catch (errorJsonError) {
+                // If response is not JSON, get text
+                const errorText = await response.text();
+                console.error('Server error (text):', errorText);
+                if (response.status === 400) {
+                    alert('Esta embarcación ya tiene un propietario asignado o los datos son inválidos');
+                } else {
+                    alert(`Error del servidor: ${response.status} ${response.statusText}`);
+                }
+            }
         }
     } catch (error) {
         console.error('Error assigning owner:', error);

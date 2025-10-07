@@ -12,7 +12,7 @@
 
 .filters-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr auto;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
     gap: 15px;
     align-items: center;
 }
@@ -190,6 +190,24 @@
     background: #2563eb;
 }
 
+.attach-btn {
+    background: #10b981;
+    color: white;
+}
+
+.attach-btn:hover {
+    background: #059669;
+}
+
+.download-btn {
+    background: #8b5cf6;
+    color: white;
+}
+
+.download-btn:hover {
+    background: #7c3aed;
+}
+
 .delete-btn {
     background: #ef4444;
     color: white;
@@ -340,10 +358,64 @@
     background: #2563eb;
 }
 
+/* Pagination */
+.pagination-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pagination-info {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.pagination-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 100px;
+    text-align: center;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .filters-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
 
@@ -374,5 +446,15 @@
 
     .form-row {
         grid-template-columns: 1fr;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .pagination-controls {
+        justify-content: center;
     }
 }

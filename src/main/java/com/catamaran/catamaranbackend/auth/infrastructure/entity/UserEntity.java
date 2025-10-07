@@ -46,5 +46,6 @@ public class UserEntity {
     private String phoneNumber;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<BoatEntity> boats;
 }

@@ -5,11 +5,16 @@ let payments = [];
 let filteredPayments = [];
 let users = [];
 let boats = [];
+let currentPage = 0;
+let totalPages = 0;
+let totalElements = 0;
+let pageSize = 10;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
 const reasonFilter = document.getElementById('reasonFilter');
 const monthFilter = document.getElementById('monthFilter');
+const statusFilter = document.getElementById('statusFilter');
 const paymentsTableBody = document.getElementById('paymentsTableBody');
 const paymentModal = document.getElementById('paymentModal');
 const paymentForm = document.getElementById('paymentForm');
@@ -41,6 +46,7 @@ function setupEventListeners() {
     searchInput.addEventListener('input', filterPayments);
     reasonFilter.addEventListener('change', filterPayments);
     monthFilter.addEventListener('change', filterPayments);
+    statusFilter.addEventListener('change', filterPayments);
     paymentForm.addEventListener('submit', savePayment);
 }
 
@@ -64,9 +70,15 @@ async function loadUsers() {
             const data = await response.json();
             users = data.content || data;
             populateUserSelect();
+        } else {
+            console.error('Failed to load users');
+            users = [];
+            populateUserSelect();
         }
     } catch (error) {
         console.error('Error loading users:', error);
+        users = [];
+        populateUserSelect();
     }
 }
 
@@ -81,9 +93,15 @@ async function loadBoats() {
             const data = await response.json();
             boats = data.content || data;
             populateBoatSelect();
+        } else {
+            console.error('Failed to load boats');
+            boats = [];
+            populateBoatSelect();
         }
     } catch (error) {
         console.error('Error loading boats:', error);
+        boats = [];
+        populateBoatSelect();
     }
 }
 
@@ -114,55 +132,59 @@ function populateBoatSelect() {
 }
 
 // Load payments from API
-async function loadPayments() {
+async function loadPayments(page = 0, search = '', reason = 'all', month = 'all', status = 'POR_PAGAR') {
     try {
-        const response = await fetch('/api/v1/payments', {
+        let url = `/api/v1/payments?page=${page}&size=${pageSize}`;
+
+        // Add filter parameters if provided
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (reason !== 'all') url += `&reason=${encodeURIComponent(reason)}`;
+        if (month !== 'all') url += `&month=${encodeURIComponent(month)}`;
+        if (status !== 'all') url += `&status=${encodeURIComponent(status)}`;
+
+        const response = await fetch(url, {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
-            payments = await response.json();
-            filteredPayments = [...payments];
+            const data = await response.json();
+            payments = data.content || [];
+            totalPages = data.totalPages || 1;
+            totalElements = data.totalElements || 0;
+            currentPage = page;
+            filteredPayments = [...payments]; // For client-side filtering if needed
             updateMetrics();
             renderPayments();
+            updatePaginationControls();
         } else {
             console.error('Failed to load payments');
-            showFallbackData();
+            payments = [];
+            filteredPayments = [];
+            totalPages = 1;
+            totalElements = 0;
+            updateMetrics();
+            renderPayments();
+            updatePaginationControls();
         }
     } catch (error) {
         console.error('Error loading payments:', error);
-        showFallbackData();
+        payments = [];
+        filteredPayments = [];
+        totalPages = 1;
+        totalElements = 0;
+        updateMetrics();
+        renderPayments();
+        updatePaginationControls();
     }
 }
 
-// Show fallback data when API fails
-function showFallbackData() {
-    payments = [
-        {
-            id: 1,
-            user: { id: 1, fullName: 'Carlos Rodríguez', email: 'carlos.rodriguez@email.com' },
-            mount: 500000.0,
-            date: '2024-12-15T10:00:00',
-            reason: 'COUTA',
-            invoice_url: 'INV-001-2024'
-        },
-        {
-            id: 2,
-            user: { id: 2, fullName: 'María González', email: 'maria.gonzalez@email.com' },
-            mount: 750000.0,
-            date: '2024-12-10T14:00:00',
-            reason: 'MANTENIMIENTO',
-            invoice_url: 'INV-002-2024'
-        }
-    ];
-    filteredPayments = [...payments];
-    updateMetrics();
-    renderPayments();
-}
 
 // Update metrics cards
 function updateMetrics() {
-    const totalPayments = payments.length;
+    // For metrics, we need all payments, not just current page
+    // This is a limitation - ideally backend should provide aggregated data
+    // For now, we'll use the current page data for calculations
+    const totalPayments = totalElements;
     const totalAmount = payments.reduce((sum, payment) => sum + (payment.mount || 0), 0);
 
     // Calculate current month payments (same logic as backend)
@@ -178,7 +200,7 @@ function updateMetrics() {
         })
         .reduce((sum, payment) => sum + (payment.mount || 0), 0);
 
-    const activePayers = new Set(payments.map(payment => payment.user.id)).size;
+    const activePayers = new Set(payments.map(payment => payment.boat && payment.boat.owner ? payment.boat.owner.id : null).filter(id => id)).size;
 
     document.getElementById('totalPayments').textContent = totalPayments;
     document.getElementById('totalAmount').textContent = formatPrice(totalAmount);
@@ -198,7 +220,7 @@ function formatPrice(price) {
 // Format payment reason for display
 function formatPaymentReason(reason) {
     const reasonMap = {
-        'COUTA': 'Cuota',
+        'PAGO': 'Pago',
         'MANTENIMIENTO': 'Mantenimiento'
     };
     return reasonMap[reason] || reason;
@@ -209,44 +231,51 @@ function getReasonClass(reason) {
     return `reason-${reason.toLowerCase()}`;
 }
 
+// Download receipt function
+function downloadReceipt(paymentId) {
+    const link = document.createElement('a');
+    link.href = `/api/v1/payments/${paymentId}/download-receipt`;
+    link.download = ''; // Let the server set the filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Update pagination controls
+function updatePaginationControls() {
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('currentPageInfo');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    // Update buttons
+    prevBtn.disabled = currentPage <= 0;
+    nextBtn.disabled = currentPage >= totalPages - 1;
+
+    // Update page info
+    pageInfo.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+
+    // Update pagination info
+    const startItem = currentPage * pageSize + 1;
+    const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
+    paginationInfo.textContent = `Mostrando ${startItem}-${endItem} de ${totalElements} pagos`;
+}
+
+// Change page function
+function changePage(page) {
+    if (page < 0 || page >= totalPages) return;
+    loadPayments(page);
+}
+
 // Filter payments based on search and filters
 function filterPayments() {
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = searchInput.value;
     const reasonValue = reasonFilter.value;
     const monthValue = monthFilter.value;
+    const statusValue = statusFilter.value;
 
-    filteredPayments = payments.filter(payment => {
-        const matchesSearch = payment.user.fullName.toLowerCase().includes(searchTerm) ||
-                             payment.user.email.toLowerCase().includes(searchTerm) ||
-                             (payment.invoice_url && payment.invoice_url.toLowerCase().includes(searchTerm));
-
-        const matchesReason = reasonValue === 'all' || payment.reason === reasonValue;
-
-        let matchesMonth = true;
-        if (monthValue !== 'all') {
-            const paymentDate = new Date(payment.date);
-            const now = new Date();
-
-            switch (monthValue) {
-                case 'current':
-                    matchesMonth = paymentDate.getMonth() === now.getMonth() &&
-                                  paymentDate.getFullYear() === now.getFullYear();
-                    break;
-                case 'last3':
-                    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-                    matchesMonth = paymentDate >= threeMonthsAgo;
-                    break;
-                case 'last6':
-                    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-                    matchesMonth = paymentDate >= sixMonthsAgo;
-                    break;
-            }
-        }
-
-        return matchesSearch && matchesReason && matchesMonth;
-    });
-
-    renderPayments();
+    // Reload data with filters applied server-side
+    loadPayments(0, searchTerm, reasonValue, monthValue, statusValue);
 }
 
 // Render payments in the table
@@ -265,14 +294,15 @@ function renderPayments() {
         filteredPayments.forEach(payment => {
             const row = document.createElement('tr');
             const paymentDate = new Date(payment.date).toLocaleString('es-ES');
+            const owner = payment.boat && payment.boat.owner;
 
             row.innerHTML = `
                 <td>${payment.id}</td>
-                <td>${payment.user.fullName}<br><small style="color: #6b7280;">${payment.user.email}</small></td>
+                <td>${owner ? `${owner.fullName}<br><small style="color: #6b7280;">${owner.email}</small>` : 'Sin propietario'}</td>
                 <td><span class="reason-badge ${getReasonClass(payment.reason)}">${formatPaymentReason(payment.reason)}</span></td>
                 <td class="price">${formatPrice(payment.mount)}</td>
                 <td>${paymentDate}</td>
-                <td>${payment.invoice_url || 'Sin factura'}</td>
+                <td>${payment.invoice_url ? `<button class="action-btn download-btn" onclick="downloadReceipt(${payment.id})">Descargar</button>` : 'Sin factura'}</td>
                 <td>
                     <div class="action-buttons">
                         <button class="action-btn view-btn" onclick="viewPayment(${payment.id})">Ver</button>
@@ -285,7 +315,7 @@ function renderPayments() {
         });
     }
 
-    document.getElementById('tableCount').textContent = `${filteredPayments.length} de ${payments.length} pagos`;
+    document.getElementById('tableCount').textContent = `${filteredPayments.length} pagos en esta página`;
 }
 
 // Open add payment modal
@@ -309,8 +339,11 @@ function viewPayment(id) {
     const payment = payments.find(p => p.id === id);
     if (!payment) return;
 
+    const owner = payment.boat && payment.boat.owner;
+    const ownerInfo = owner ? `Propietario: ${owner.fullName}\nEmail: ${owner.email}` : 'Sin propietario asignado';
+
     // For now, just show an alert with payment details
-    alert(`Pago #${payment.id}\n\nPropietario: ${payment.user.fullName}\nEmail: ${payment.user.email}\nMonto: ${formatPrice(payment.mount)}\nRazón: ${formatPaymentReason(payment.reason)}\nFecha: ${new Date(payment.date).toLocaleString('es-ES')}\nFactura: ${payment.invoice_url || 'Sin factura'}`);
+    alert(`Pago #${payment.id}\n\n${ownerInfo}\nMonto: ${formatPrice(payment.mount)}\nRazón: ${formatPaymentReason(payment.reason)}\nFecha: ${new Date(payment.date).toLocaleString('es-ES')}\nFactura: ${payment.invoice_url || 'Sin factura'}`);
 }
 
 // Delete payment
@@ -339,12 +372,13 @@ async function savePayment(event) {
         mount: parseFloat(formData.get('amount')),
         date: new Date(formData.get('date')).toISOString(),
         reason: formData.get('reason'),
-        invoice_url: formData.get('invoice') || null
+        invoice_url: formData.get('invoice') || null,
+        boat: { id: parseInt(boatId) }
     };
 
     try {
         // Create payment using the existing API endpoint
-        const response = await fetch(`/api/v1/payments/${boatId}/${userId}`, {
+        const response = await fetch('/api/v1/payments', {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(paymentData)
@@ -359,32 +393,10 @@ async function savePayment(event) {
             closeModal();
         } else {
             console.error('Failed to create payment');
-            // Fallback to local state update
-            const selectedUser = users.find(u => u.id == userId);
-            const newPayment = {
-                ...paymentData,
-                id: Math.max(...payments.map(p => p.id), 0) + 1,
-                user: selectedUser
-            };
-            payments.push(newPayment);
-            filteredPayments = [...payments];
-            updateMetrics();
-            renderPayments();
             closeModal();
         }
     } catch (error) {
         console.error('Error saving payment:', error);
-        // Fallback to local state update
-        const selectedUser = users.find(u => u.id == userId);
-        const newPayment = {
-            ...paymentData,
-            id: Math.max(...payments.map(p => p.id), 0) + 1,
-            user: selectedUser
-        };
-        payments.push(newPayment);
-        filteredPayments = [...payments];
-        updateMetrics();
-        renderPayments();
         closeModal();
     }
 }
@@ -394,12 +406,15 @@ function openReceiptModal(paymentId) {
     const payment = payments.find(p => p.id === paymentId);
     if (!payment) return;
 
+    const owner = payment.boat && payment.boat.owner;
+    const ownerName = owner ? owner.fullName : 'Sin propietario';
+
     // Show payment info
     document.getElementById('receiptInfo').innerHTML = `
         <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0; color: #1f2937;">Información del Pago</h4>
             <p style="margin: 5px 0;"><strong>ID:</strong> ${payment.id}</p>
-            <p style="margin: 5px 0;"><strong>Propietario:</strong> ${payment.user.fullName}</p>
+            <p style="margin: 5px 0;"><strong>Propietario:</strong> ${ownerName}</p>
             <p style="margin: 5px 0;"><strong>Monto:</strong> ${formatPrice(payment.mount)}</p>
             <p style="margin: 5px 0;"><strong>Razón:</strong> ${formatPaymentReason(payment.reason)}</p>
             <p style="margin: 5px 0;"><strong>Fecha:</strong> ${new Date(payment.date).toLocaleString('es-ES')}</p>
@@ -454,10 +469,10 @@ async function attachReceipt() {
 
     try {
         const formData = new FormData();
-        formData.append('receipt', file);
+        formData.append('file', file);
 
-        const response = await fetch(`/api/v1/payments/${paymentId}/attach-receipt`, {
-            method: 'PUT',
+        const response = await fetch(`/api/v1/payments/${paymentId}/receipt`, {
+            method: 'POST',
             headers: {
                 'Authorization': getAuthHeaders()['Authorization'] // Only include auth header for multipart
             },
@@ -532,5 +547,7 @@ window.deletePayment = deletePayment;
 window.openReceiptModal = openReceiptModal;
 window.closeReceiptModal = closeReceiptModal;
 window.attachReceipt = attachReceipt;
+window.downloadReceipt = downloadReceipt;
+window.changePage = changePage;
 window.logout = logout;
 window.navigateTo = navigateTo;

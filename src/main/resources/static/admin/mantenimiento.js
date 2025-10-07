@@ -67,9 +67,15 @@ async function loadBoats() {
             const data = await response.json();
             boats = data.content || data;
             populateBoatSelect();
+        } else {
+            console.error('Failed to load boats');
+            boats = [];
+            populateBoatSelect();
         }
     } catch (error) {
         console.error('Error loading boats:', error);
+        boats = [];
+        populateBoatSelect();
     }
 }
 
@@ -89,69 +95,32 @@ function populateBoatSelect() {
 // Load maintenances from API
 async function loadMaintenances() {
     try {
-        const response = await fetch('/api/v1/admin/maintenances', {
+        const response = await fetch('/api/v1/maintenances?page=0&size=100', {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
-            maintenances = await response.json();
-            // If no maintenances from API, show fallback data for testing
-            if (maintenances.length === 0) {
-                showFallbackData();
-                return;
-            }
+            const data = await response.json();
+            maintenances = data.content || [];
             filteredMaintenances = [...maintenances];
             updateMetrics();
             renderMaintenances();
         } else {
             console.error('Failed to load maintenances');
-            showFallbackData();
+            maintenances = [];
+            filteredMaintenances = [];
+            updateMetrics();
+            renderMaintenances();
         }
     } catch (error) {
         console.error('Error loading maintenances:', error);
-        showFallbackData();
+        maintenances = [];
+        filteredMaintenances = [];
+        updateMetrics();
+        renderMaintenances();
     }
 }
 
-// Show fallback data when API fails
-function showFallbackData() {
-    maintenances = [
-        {
-            id: 1,
-            boat: { id: 1, name: 'Catamaran A', model: 'Modelo X' },
-            type: 'PREVENTIVO',
-            status: 'PROGRAMADO',
-            priority: 'MEDIA',
-            dateScheduled: '2024-12-15T10:00:00',
-            description: 'Mantenimiento preventivo mensual',
-            cost: 150000,
-            payment: {
-                id: 1,
-                status: 'POR_PAGAR',
-                mount: 150000
-            }
-        },
-        {
-            id: 2,
-            boat: { id: 2, name: 'Catamaran B', model: 'Modelo Y' },
-            type: 'CORRECTIVO',
-            status: 'EN_PROCESO',
-            priority: 'ALTA',
-            dateScheduled: '2024-12-10T14:00:00',
-            datePerformed: '2024-12-10T16:00:00',
-            description: 'Reparación de motor',
-            cost: 500000,
-            payment: {
-                id: 2,
-                status: 'PAGADO',
-                mount: 500000
-            }
-        }
-    ];
-    filteredMaintenances = [...maintenances];
-    updateMetrics();
-    renderMaintenances();
-}
 
 // Update metrics cards
 function updateMetrics() {
@@ -367,11 +336,11 @@ async function saveMaintenance(event) {
                 }
             } else {
                 console.error('Failed to update maintenance');
-                return;
+                closeModal();
             }
         } else {
             // Add new maintenance
-            const response = await fetch(`/api/v1/maintenances/${boatId}`, {
+            const response = await fetch(`/api/v1/maintenances/boat/${boatId}`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(maintenanceData)
@@ -382,7 +351,7 @@ async function saveMaintenance(event) {
                 maintenances.push(newMaintenance);
             } else {
                 console.error('Failed to create maintenance');
-                return;
+                closeModal();
             }
         }
 
@@ -392,25 +361,6 @@ async function saveMaintenance(event) {
         closeModal();
     } catch (error) {
         console.error('Error saving maintenance:', error);
-        // Fallback to local state update
-        if (currentEditingMaintenance) {
-            const updatedMaintenance = { ...currentEditingMaintenance, ...maintenanceData };
-            const index = maintenances.findIndex(m => m.id === currentEditingMaintenance.id);
-            if (index !== -1) {
-                maintenances[index] = updatedMaintenance;
-            }
-        } else {
-            const selectedBoat = boats.find(b => b.id == boatId);
-            const newMaintenance = {
-                ...maintenanceData,
-                id: Math.max(...maintenances.map(m => m.id), 0) + 1,
-                boat: selectedBoat
-            };
-            maintenances.push(newMaintenance);
-        }
-        filteredMaintenances = [...maintenances];
-        updateMetrics();
-        renderMaintenances();
         closeModal();
     }
 }

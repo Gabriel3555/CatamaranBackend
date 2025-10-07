@@ -95,7 +95,7 @@
                     </div>
                     <select id="reasonFilter" class="filter-select">
                         <option value="all">Todas las razones</option>
-                        <option value="COUTA">Cuota</option>
+                        <option value="PAGO">Pago</option>
                         <option value="MANTENIMIENTO">Mantenimiento</option>
                     </select>
                     <select id="monthFilter" class="filter-select">
@@ -103,6 +103,11 @@
                         <option value="current">Mes actual</option>
                         <option value="last3">Últimos 3 meses</option>
                         <option value="last6">Últimos 6 meses</option>
+                    </select>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="POR_PAGAR">Por pagar</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="all">Todos</option>
                     </select>
                     <button onclick="openAddModal()" class="add-btn">
                         ➕ Nuevo Pago
@@ -132,6 +137,22 @@
                         <!-- Payments will be loaded here -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Mostrando 0 de 0 pagos</span>
+                </div>
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" onclick="changePage(currentPage - 1)" class="pagination-btn" disabled>
+                        ← Anterior
+                    </button>
+                    <span id="currentPageInfo" class="page-info">Página 1</span>
+                    <button id="nextPageBtn" onclick="changePage(currentPage + 1)" class="pagination-btn" disabled>
+                        Siguiente →
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -163,7 +184,7 @@
                         <div class="form-group">
                             <label for="paymentReason">Razón del Pago</label>
                             <select id="paymentReason" name="reason" required>
-                                <option value="COUTA">Cuota</option>
+                                <option value="PAGO">Pago</option>
                                 <option value="MANTENIMIENTO">Mantenimiento</option>
                             </select>
                         </div>
