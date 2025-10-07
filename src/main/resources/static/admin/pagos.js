@@ -276,6 +276,7 @@ function renderPayments() {
                 <td>
                     <div class="action-buttons">
                         <button class="action-btn view-btn" onclick="viewPayment(${payment.id})">Ver</button>
+                        ${!payment.invoice_url ? `<button class="action-btn attach-btn" onclick="openReceiptModal(${payment.id})">Adjuntar Recibo</button>` : ''}
                         <button class="action-btn delete-btn" onclick="deletePayment(${payment.id})">Eliminar</button>
                     </div>
                 </td>
@@ -388,6 +389,109 @@ async function savePayment(event) {
     }
 }
 
+// Open receipt modal
+function openReceiptModal(paymentId) {
+    const payment = payments.find(p => p.id === paymentId);
+    if (!payment) return;
+
+    // Show payment info
+    document.getElementById('receiptInfo').innerHTML = `
+        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 10px 0; color: #1f2937;">Información del Pago</h4>
+            <p style="margin: 5px 0;"><strong>ID:</strong> ${payment.id}</p>
+            <p style="margin: 5px 0;"><strong>Propietario:</strong> ${payment.user.fullName}</p>
+            <p style="margin: 5px 0;"><strong>Monto:</strong> ${formatPrice(payment.mount)}</p>
+            <p style="margin: 5px 0;"><strong>Razón:</strong> ${formatPaymentReason(payment.reason)}</p>
+            <p style="margin: 5px 0;"><strong>Fecha:</strong> ${new Date(payment.date).toLocaleString('es-ES')}</p>
+        </div>
+    `;
+
+    // Reset form
+    document.getElementById('receiptForm').reset();
+
+    // Store payment ID for later use
+    document.getElementById('receiptModal').dataset.paymentId = paymentId;
+
+    // Show modal
+    document.getElementById('receiptModal').style.display = 'block';
+}
+
+// Close receipt modal
+function closeReceiptModal() {
+    document.getElementById('receiptModal').style.display = 'none';
+}
+
+// Attach receipt to payment
+async function attachReceipt() {
+    const modal = document.getElementById('receiptModal');
+    const paymentId = modal.dataset.paymentId;
+    const fileInput = document.getElementById('receiptFile');
+    const attachBtn = document.getElementById('attachBtn');
+
+    if (!fileInput.files[0]) {
+        alert('Por favor selecciona un archivo para el recibo.');
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Tamaño máximo: 5MB');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG) y PDF.');
+        return;
+    }
+
+    // Disable button and show loading
+    attachBtn.disabled = true;
+    attachBtn.textContent = 'Subiendo...';
+
+    try {
+        const formData = new FormData();
+        formData.append('receipt', file);
+
+        const response = await fetch(`/api/v1/payments/${paymentId}/attach-receipt`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': getAuthHeaders()['Authorization'] // Only include auth header for multipart
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            const updatedPayment = await response.json();
+
+            // Update payment in local array
+            const index = payments.findIndex(p => p.id === paymentId);
+            if (index !== -1) {
+                payments[index] = updatedPayment;
+                filteredPayments = [...payments];
+                updateMetrics();
+                renderPayments();
+            }
+
+            alert('Recibo adjuntado exitosamente.');
+            closeReceiptModal();
+        } else {
+            const error = await response.text();
+            alert('Error al adjuntar el recibo: ' + error);
+        }
+    } catch (error) {
+        console.error('Error attaching receipt:', error);
+        alert('Error de conexión. Por favor, inténtalo de nuevo.');
+    } finally {
+        // Re-enable button
+        attachBtn.disabled = false;
+        attachBtn.textContent = 'Adjuntar Recibo';
+    }
+}
+
 // Close modal
 function closeModal() {
     paymentModal.style.display = 'none';
@@ -414,6 +518,9 @@ window.onclick = function(event) {
     if (event.target === paymentModal) {
         closeModal();
     }
+    if (event.target === document.getElementById('receiptModal')) {
+        closeReceiptModal();
+    }
 };
 
 // Export functions for HTML onclick handlers
@@ -422,5 +529,8 @@ window.openAddModal = openAddModal;
 window.closeModal = closeModal;
 window.viewPayment = viewPayment;
 window.deletePayment = deletePayment;
+window.openReceiptModal = openReceiptModal;
+window.closeReceiptModal = closeReceiptModal;
+window.attachReceipt = attachReceipt;
 window.logout = logout;
 window.navigateTo = navigateTo;

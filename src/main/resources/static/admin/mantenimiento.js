@@ -5,6 +5,7 @@ let maintenances = [];
 let filteredMaintenances = [];
 let boats = [];
 let currentEditingMaintenance = null;
+let currentPaymentId = null;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -15,6 +16,9 @@ const maintenanceModal = document.getElementById('maintenanceModal');
 const maintenanceForm = document.getElementById('maintenanceForm');
 const modalTitle = document.getElementById('modalTitle');
 const saveBtn = document.getElementById('saveBtn');
+const receiptModal = document.getElementById('receiptModal');
+const receiptForm = document.getElementById('receiptForm');
+const uploadBtn = document.getElementById('uploadBtn');
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
@@ -91,6 +95,11 @@ async function loadMaintenances() {
 
         if (response.ok) {
             maintenances = await response.json();
+            // If no maintenances from API, show fallback data for testing
+            if (maintenances.length === 0) {
+                showFallbackData();
+                return;
+            }
             filteredMaintenances = [...maintenances];
             updateMetrics();
             renderMaintenances();
@@ -115,7 +124,12 @@ function showFallbackData() {
             priority: 'MEDIA',
             dateScheduled: '2024-12-15T10:00:00',
             description: 'Mantenimiento preventivo mensual',
-            cost: 150000
+            cost: 150000,
+            payment: {
+                id: 1,
+                status: 'POR_PAGAR',
+                mount: 150000
+            }
         },
         {
             id: 2,
@@ -126,7 +140,12 @@ function showFallbackData() {
             dateScheduled: '2024-12-10T14:00:00',
             datePerformed: '2024-12-10T16:00:00',
             description: 'Reparación de motor',
-            cost: 500000
+            cost: 500000,
+            payment: {
+                id: 2,
+                status: 'PAGADO',
+                mount: 500000
+            }
         }
     ];
     filteredMaintenances = [...maintenances];
@@ -176,6 +195,22 @@ function formatPriority(priority) {
     return priorityMap[priority] || priority;
 }
 
+// Format payment status for display
+function formatPaymentStatus(payment) {
+    if (!payment) return 'Sin pago';
+    const statusMap = {
+        'PAGADO': 'Pagado',
+        'POR_PAGAR': 'Por Pagar'
+    };
+    return statusMap[payment.status] || payment.status;
+}
+
+// Get payment status class for styling
+function getPaymentStatusClass(payment) {
+    if (!payment) return 'payment-none';
+    return `payment-${payment.status.toLowerCase().replace('_', '_')}`;
+}
+
 // Get priority class for styling
 function getPriorityClass(priority) {
     return `priority-${priority.toLowerCase()}`;
@@ -203,12 +238,13 @@ function filterMaintenances() {
 
 // Render maintenances in the table
 function renderMaintenances() {
+    console.log('Rendering maintenances:', filteredMaintenances);
     maintenanceTableBody.innerHTML = '';
 
     if (filteredMaintenances.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="9" style="text-align: center; padding: 40px; color: #6b7280;">
+            <td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;">
                 No se encontraron mantenimientos
             </td>
         `;
@@ -220,20 +256,24 @@ function renderMaintenances() {
                 new Date(maintenance.dateScheduled).toLocaleString('es-ES') : 'N/A';
             const performedDate = maintenance.datePerformed ?
                 new Date(maintenance.datePerformed).toLocaleString('es-ES') : 'Pendiente';
+            const status = maintenance.status || 'PROGRAMADO';
+            const priority = maintenance.priority || 'MEDIA';
 
             row.innerHTML = `
-                <td>${maintenance.boat.name} (${maintenance.boat.model})</td>
+                <td>${maintenance.boat ? maintenance.boat.name + ' (' + maintenance.boat.model + ')' : 'N/A'}</td>
                 <td>${formatMaintenanceType(maintenance.type)}</td>
-                <td><span class="status-badge status-${maintenance.status.toLowerCase().replace('_', '_')}">${maintenance.status.replace('_', ' ')}</span></td>
-                <td><span class="priority-badge ${getPriorityClass(maintenance.priority)}">${formatPriority(maintenance.priority)}</span></td>
+                <td><span class="status-badge status-${status.toLowerCase().replace('_', '_')}">${status.replace('_', ' ')}</span></td>
+                <td><span class="priority-badge ${getPriorityClass(priority)}">${formatPriority(priority)}</span></td>
                 <td>${scheduledDate}</td>
                 <td>${performedDate}</td>
                 <td class="price">${formatPrice(maintenance.cost || 0)}</td>
                 <td>${maintenance.description || 'Sin descripción'}</td>
+                <td><span class="payment-badge ${getPaymentStatusClass(maintenance.payment)}">${formatPaymentStatus(maintenance.payment)}</span></td>
                 <td>
                     <div class="action-buttons">
                         <button class="action-btn edit-btn" onclick="editMaintenance(${maintenance.id})">Editar</button>
                         <button class="action-btn delete-btn" onclick="deleteMaintenance(${maintenance.id})">Eliminar</button>
+                        <button class="action-btn receipt-btn" onclick="openReceiptModal(${maintenance.payment && maintenance.payment.id ? maintenance.payment.id : null})">Añadir Recibo</button>
                     </div>
                 </td>
             `;
@@ -397,10 +437,96 @@ function navigateTo(page) {
     // window.location.href = `${page}.html`;
 }
 
+// Open receipt modal
+function openReceiptModal(paymentId) {
+    currentPaymentId = paymentId;
+    receiptForm.reset();
+    receiptModal.style.display = 'block';
+}
+
+// Close receipt modal
+function closeReceiptModal() {
+    receiptModal.style.display = 'none';
+    currentPaymentId = null;
+}
+
+// Upload receipt
+async function uploadReceipt() {
+    if (!currentPaymentId) {
+        alert('Este mantenimiento no tiene un pago asociado.');
+        return;
+    }
+
+    const formData = new FormData(receiptForm);
+    const receiptFile = formData.get('receipt');
+
+    if (!receiptFile || receiptFile.size === 0) {
+        alert('Por favor selecciona un archivo de recibo');
+        return;
+    }
+
+    // Validate file size (5MB max)
+    if (receiptFile.size > 5 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Tamaño máximo: 5MB');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!allowedTypes.includes(receiptFile.type)) {
+        alert('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG) y PDF');
+        return;
+    }
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Subiendo...';
+
+    try {
+        const uploadData = new FormData();
+        uploadData.append('receipt', receiptFile);
+
+        const response = await fetch(`/api/v1/payments/${currentPaymentId}/attach-receipt`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            },
+            body: uploadData
+        });
+
+        if (response.ok) {
+            const updatedPayment = await response.json();
+            alert('Recibo subido exitosamente');
+
+            // Update the maintenance data
+            maintenances.forEach(maintenance => {
+                if (maintenance.payment && maintenance.payment.id === currentPaymentId) {
+                    maintenance.payment = updatedPayment;
+                }
+            });
+
+            filteredMaintenances = [...maintenances];
+            renderMaintenances();
+            closeReceiptModal();
+        } else {
+            const error = response.statusText || 'Error desconocido';
+            alert('Error al subir el recibo: ' + error);
+        }
+    } catch (error) {
+        console.error('Error uploading receipt:', error);
+        alert('Error al subir el recibo. Inténtalo de nuevo.');
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Subir Recibo';
+    }
+}
+
 // Close modal when clicking outside
 window.onclick = function(event) {
     if (event.target === maintenanceModal) {
         closeModal();
+    }
+    if (event.target === receiptModal) {
+        closeReceiptModal();
     }
 };
 
@@ -410,5 +536,8 @@ window.openAddModal = openAddModal;
 window.closeModal = closeModal;
 window.editMaintenance = editMaintenance;
 window.deleteMaintenance = deleteMaintenance;
+window.openReceiptModal = openReceiptModal;
+window.closeReceiptModal = closeReceiptModal;
+window.uploadReceipt = uploadReceipt;
 window.logout = logout;
 window.navigateTo = navigateTo;

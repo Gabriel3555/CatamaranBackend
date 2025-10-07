@@ -45,12 +45,6 @@ public class UserEntity {
     private String fullName;
     private String phoneNumber;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "owner_id")
-    @JsonIgnore
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<BoatEntity> boats;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<PaymentEntity> payments;
 }

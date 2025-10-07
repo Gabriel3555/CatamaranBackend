@@ -38,7 +38,6 @@ public class MaintananceEntity {
 
     private Double cost;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "payment_id")
+    @OneToOne(mappedBy = "maintanance", cascade = CascadeType.ALL)
     private PaymentEntity payment;
 }

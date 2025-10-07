@@ -7,6 +7,4 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BoatRepository extends JpaRepository<BoatEntity, Long> {
-    Page<BoatEntity> findAll(Pageable pageable);
-}
+public interface BoatRepository extends JpaRepository<BoatEntity, Long> {}

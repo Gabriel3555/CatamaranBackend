@@ -28,6 +28,9 @@ public class BoatEntity {
     private String location;
     private Double price;
 
+    @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL)
+    private List<MaintananceEntity> maintanances;
+
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "document_id")
     private List<BoatDocumentEntity> documents;

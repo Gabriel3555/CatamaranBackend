@@ -85,7 +85,8 @@
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     border: 1px solid #e5e7eb;
-    overflow: hidden;
+    overflow-x: auto;
+    width: 100%;
 }
 
 .table-header {
@@ -112,6 +113,7 @@
 .maintenance-table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 1200px;
 }
 
 .maintenance-table thead {
@@ -119,19 +121,26 @@
 }
 
 .maintenance-table th {
-    padding: 12px 16px;
+    padding: 18px 16px;
     text-align: left;
     font-weight: 600;
     color: #374151;
     font-size: 14px;
     border-bottom: 1px solid #e5e7eb;
+    min-width: 120px;
 }
 
+.maintenance-table th:nth-child(1) { min-width: 200px; } /* Embarcación */
+.maintenance-table th:nth-child(8) { min-width: 250px; } /* Descripción */
+.maintenance-table th:nth-child(9) { min-width: 120px; } /* Estado de Pago */
+.maintenance-table th:nth-child(10) { min-width: 180px; } /* Acciones */
+
 .maintenance-table td {
-    padding: 12px 16px;
+    padding: 18px 16px;
     border-bottom: 1px solid #f3f4f6;
     font-size: 14px;
     color: #374151;
+    word-wrap: break-word;
 }
 
 .maintenance-table tbody tr:hover {
@@ -140,9 +149,9 @@
 
 /* Status Badges */
 .status-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
     font-weight: 500;
     text-transform: uppercase;
 }
@@ -167,9 +176,9 @@
 
 /* Priority Badges */
 .priority-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
     font-weight: 500;
     text-transform: uppercase;
 }
@@ -198,17 +207,44 @@
     border: 1px solid #dc2626;
 }
 
+/* Payment Status Badges */
+.payment-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.payment-none {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+}
+
+.payment-por_pagar {
+    background: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fcd34d;
+}
+
+.payment-pagado {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
 /* Action buttons */
 .action-buttons {
     display: flex;
-    gap: 8px;
+    gap: 12px;
 }
 
 .action-btn {
-    padding: 6px 12px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: 6px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -230,6 +266,15 @@
 
 .delete-btn:hover {
     background: #dc2626;
+}
+
+.receipt-btn {
+    background: #10b981;
+    color: white;
+}
+
+.receipt-btn:hover {
+    background: #059669;
 }
 
 /* Modal Styles */
@@ -344,6 +389,12 @@
     grid-column: 1 / -1;
 }
 
+.form-hint {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
 .modal-footer {
     padding: 16px 24px 24px;
     border-top: 1px solid #e5e7eb;
@@ -398,17 +449,22 @@
     }
 
     .maintenance-table {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .maintenance-table th,
     .maintenance-table td {
-        padding: 8px 12px;
+        padding: 12px 16px;
     }
 
     .action-buttons {
         flex-direction: column;
-        gap: 4px;
+        gap: 8px;
+    }
+
+    .action-btn {
+        padding: 10px 14px;
+        font-size: 13px;
     }
 
     .modal-content {

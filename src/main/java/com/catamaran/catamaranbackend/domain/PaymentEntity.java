@@ -22,13 +22,17 @@ public class PaymentEntity {
 
     private Double mount;
     private LocalDateTime date;
-    private ReasonPayment reason;
     private String invoice_url;
+
+    @Enumerated(EnumType.STRING)
+    private ReasonPayment reason;
+
+    @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    @OneToOne
+    @JoinColumn(name = "maintanance_id")
+    private MaintananceEntity maintanance;
 
     @ManyToOne
     @JoinColumn(name = "boat_id")
