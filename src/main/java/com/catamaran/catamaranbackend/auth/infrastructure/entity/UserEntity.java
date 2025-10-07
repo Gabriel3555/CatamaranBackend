@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
+import com.catamaran.catamaranbackend.domain.PaymentEntity;
 
 @Entity
 @Table(name = "users")
@@ -46,5 +47,10 @@ public class UserEntity {
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "owner_id")
+    @JsonIgnore
     private List<BoatEntity> boats;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<PaymentEntity> payments;
 }

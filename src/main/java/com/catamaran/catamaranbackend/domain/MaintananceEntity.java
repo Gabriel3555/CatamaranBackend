@@ -37,4 +37,8 @@ public class MaintananceEntity {
     private String description;
 
     private Double cost;
+
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn(name = "payment_id")
+    private PaymentEntity payment;
 }

@@ -24,8 +24,13 @@ public class PaymentEntity {
     private LocalDateTime date;
     private ReasonPayment reason;
     private String invoice_url;
+    private PaymentStatus status;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserEntity user;
+
+    @ManyToOne
+    @JoinColumn(name = "boat_id")
+    private BoatEntity boat;
 }

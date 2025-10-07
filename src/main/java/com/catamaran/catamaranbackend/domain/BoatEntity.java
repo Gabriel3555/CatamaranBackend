@@ -36,6 +36,9 @@ public class BoatEntity {
     @JoinColumn(name = "owner_id")
     private UserEntity owner;
 
+    @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL)
+    private List<PaymentEntity> payments;
+
     @Column(nullable = false)
     private Double balance = 0.0;
 }

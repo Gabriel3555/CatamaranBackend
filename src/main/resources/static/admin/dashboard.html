@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Administrativo - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span>Administrador</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="inventario.html" class="nav-link">Inventario</a>
+            <a href="propietarios.html" class="nav-link">Propietarios</a>
+            <a href="mantenimiento.html" class="nav-link">Mantenimiento</a>
+            <a href="pagos.html" class="nav-link">Pagos</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Dashboard Administrativo</h2>
+                <p>Resumen general del sistema</p>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon blue">
+                        🛥️
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="totalBoats">45</h3>
+                        <p>Total Embarcaciones</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon green">
+                        👥
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="activeOwners">28</h3>
+                        <p>Propietarios Activos</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon amber">
+                        🔧
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="pendingMaintenances">12</h3>
+                        <p>Mantenimientos Pendientes</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon purple">
+                        💰
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="monthlyPayments">$52,200</h3>
+                        <p>Pagos del Mes</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <!-- Boat Types Chart -->
+                <div class="chart-card">
+                    <h3>Embarcaciones por Tipo</h3>
+                    <div class="chart-placeholder">
+                        <div class="bar-chart">
+                            <div class="bar" style="height: 80%">Turismo (20)</div>
+                            <div class="bar" style="height: 60%">Alojamiento (15)</div>
+                            <div class="bar" style="height: 40%">E-N (10)</div>
+                            <div class="bar" style="height: 20%">Exclusivos (5)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Maintenance Status Chart -->
+                <div class="chart-card">
+                    <h3>Mantenimientos por Estado</h3>
+                    <div class="chart-placeholder">
+                        <div class="pie-chart">
+                            <div class="pie-segment pending">Pendiente (12)</div>
+                            <div class="pie-segment progress">En Proceso (5)</div>
+                            <div class="pie-segment completed">Completado (8)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="actions-card">
+                <h3>Acciones Rápidas</h3>
+                <div class="actions-grid">
+                    <button onclick="navigateTo('inventario')" class="action-btn blue">
+                        Gestionar Inventario
+                    </button>
+                    <button onclick="navigateTo('propietarios')" class="action-btn green">
+                        Ver Propietarios
+                    </button>
+                    <button onclick="navigateTo('mantenimiento')" class="action-btn amber">
+                        Programar Mantenimiento
+                    </button>
+                    <button onclick="navigateTo('reportes')" class="action-btn purple">
+                        Generar Reporte
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

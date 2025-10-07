@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="inventario.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span>Administrador</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="inventario.html" class="nav-link active">Inventario</a>
+            <a href="propietarios.html" class="nav-link">Propietarios</a>
+            <a href="mantenimiento.html" class="nav-link">Mantenimiento</a>
+            <a href="pagos.html" class="nav-link">Pagos</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Gestión de Inventario</h2>
+                <p>Administra las embarcaciones del catálogo</p>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon blue">
+                        🚢
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="totalBoats">0</h3>
+                        <p>Total Embarcaciones</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon green">
+                        ✅
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="availableBoats">0</h3>
+                        <p>Disponibles</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon amber">
+                        🔧
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="maintenanceBoats">0</h3>
+                        <p>En Mantenimiento</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon purple">
+                        👤
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="ownedBoats">0</h3>
+                        <p>Con Propietario</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="filters-section">
+                <div class="filters-grid">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar embarcaciones..." class="search-input">
+                        <button class="search-btn">🔍</button>
+                    </div>
+                    <select id="typeFilter" class="filter-select">
+                        <option value="all">Todos los tipos</option>
+                        <option value="TURISMO">Turismo</option>
+                        <option value="ALOJAMIENTO">Alojamiento</option>
+                        <option value="EVENTOS_NEGOCIOS">Eventos y Negocios</option>
+                        <option value="DISENO_EXCLUSIVO">Diseño Exclusivo</option>
+                    </select>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Todos los estados</option>
+                        <option value="Disponible">Disponible</option>
+                        <option value="Ocupado">Ocupado</option>
+                    </select>
+                    <button onclick="openAddModal()" class="add-btn">
+                        ➕ Nueva Embarcación
+                    </button>
+                </div>
+            </div>
+
+            <!-- Inventory Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Inventario de Embarcaciones</h3>
+                    <span id="tableCount">0 embarcaciones</span>
+                </div>
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Modelo</th>
+                            <th>Ubicación</th>
+                            <th>Estado</th>
+                            <th>Precio</th>
+                            <th>Propietario</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <!-- Boats will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="boatModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Agregar Nueva Embarcación</h3>
+                <button onclick="closeModal()" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="boatForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="boatName">Nombre</label>
+                            <input type="text" id="boatName" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="boatType">Tipo</label>
+                            <select id="boatType" name="type" required>
+                                <option value="TURISMO">Turismo</option>
+                                <option value="ALOJAMIENTO">Alojamiento</option>
+                                <option value="EVENTOS_NEGOCIOS">Eventos y Negocios</option>
+                                <option value="DISENO_EXCLUSIVO">Diseño Exclusivo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="boatModel">Modelo</label>
+                            <input type="text" id="boatModel" name="model" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="boatLocation">Ubicación</label>
+                            <input type="text" id="boatLocation" name="location" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="boatPrice">Precio (COP)</label>
+                            <input type="number" id="boatPrice" name="price" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn-secondary">Cancelar</button>
+                <button onclick="saveBoat()" class="btn-primary" id="saveBtn">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="inventario.js"></script>
+</body>
+</html>

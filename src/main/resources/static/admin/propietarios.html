@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Propietarios - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="propietarios.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span>Administrador</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="inventario.html" class="nav-link">Inventario</a>
+            <a href="propietarios.html" class="nav-link active">Propietarios</a>
+            <a href="mantenimiento.html" class="nav-link">Mantenimiento</a>
+            <a href="pagos.html" class="nav-link">Pagos</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Gestión de Propietarios</h2>
+                <p>Administra los propietarios del sistema</p>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon blue">
+                        👥
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="totalOwners">0</h3>
+                        <p>Total Propietarios</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon green">
+                        ✅
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="activeOwners">0</h3>
+                        <p>Activos</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon amber">
+                        🚫
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="inactiveOwners">0</h3>
+                        <p>Inactivos</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon purple">
+                        🚢
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="ownersWithBoats">0</h3>
+                        <p>Con Embarcaciones</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="filters-section">
+                <div class="filters-grid">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar propietarios..." class="search-input">
+                        <button class="search-btn">🔍</button>
+                    </div>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Todos los estados</option>
+                        <option value="true">Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                    <select id="roleFilter" class="filter-select">
+                        <option value="PROPIETARIO">Propietarios</option>
+                    </select>
+                    <button onclick="openAddModal()" class="add-btn">
+                        ➕ Nuevo Propietario
+                    </button>
+                </div>
+            </div>
+
+            <!-- Owners Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Lista de Propietarios</h3>
+                    <span id="tableCount">0 propietarios</span>
+                </div>
+                <table class="owners-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre Completo</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Embarcaciones</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ownersTableBody">
+                        <!-- Owners will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="ownerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Agregar Nuevo Propietario</h3>
+                <button onclick="closeModal()" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="ownerForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ownerFullName">Nombre Completo</label>
+                            <input type="text" id="ownerFullName" name="fullName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ownerEmail">Email</label>
+                            <input type="email" id="ownerEmail" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ownerPhone">Teléfono</label>
+                            <input type="tel" id="ownerPhone" name="phoneNumber" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ownerUsername">Usuario</label>
+                            <input type="text" id="ownerUsername" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ownerPassword">Contraseña</label>
+                            <input type="password" id="ownerPassword" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ownerStatus">Estado</label>
+                            <select id="ownerStatus" name="status" required>
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn-secondary">Cancelar</button>
+                <button onclick="saveOwner()" class="btn-primary" id="saveBtn">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="propietarios.js"></script>
+</body>
+</html>

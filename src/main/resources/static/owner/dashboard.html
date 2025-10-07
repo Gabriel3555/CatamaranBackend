@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Dashboard - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">Propietario</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="embarcaciones.html" class="nav-link">Embarcaciones</a>
+            <a href="mantenimientos.html" class="nav-link">Mantenimientos</a>
+            <a href="perfil.html" class="nav-link">Perfil</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Mi Dashboard</h2>
+                <p id="welcomeMessage">Bienvenido de vuelta</p>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon blue">
+                        🛥️
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="myBoatsCount">2</h3>
+                        <p>Mis Embarcaciones</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon amber">
+                        🔧
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="pendingMaintenances">1</h3>
+                        <p>Mant. Pendientes</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon green">
+                        ✅
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="completedMaintenances">1</h3>
+                        <p>Mant. Completados</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon purple">
+                        📄
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="documentsCount">8</h3>
+                        <p>Documentos</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Boats Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Mis Embarcaciones</h3>
+                    <p>Estado actual de tus embarcaciones</p>
+                </div>
+                <div class="boats-grid" id="boatsGrid">
+                    <!-- Boats will be loaded here -->
+                </div>
+                <div class="section-footer">
+                    <button onclick="navigateTo('embarcaciones')" class="primary-btn">
+                        Ver Todas las Embarcaciones
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upcoming Events -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Próximos Eventos</h3>
+                    <p>Mantenimientos e inspecciones programadas</p>
+                </div>
+                <div class="events-list" id="eventsList">
+                    <!-- Events will be loaded here -->
+                </div>
+                <div class="section-footer">
+                    <button onclick="navigateTo('mantenimientos')" class="primary-btn">
+                        Ver Calendario Completo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Maintenances -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Mantenimientos Recientes</h3>
+                    <p>Historial de mantenimientos de tus embarcaciones</p>
+                </div>
+                <div class="maintenances-list" id="maintenancesList">
+                    <!-- Maintenances will be loaded here -->
+                </div>
+                <div class="section-footer">
+                    <button onclick="navigateTo('mantenimientos')" class="primary-btn">
+                        Ver Todos los Mantenimientos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Acciones Rápidas</h3>
+                    <p>Accesos directos a funciones frecuentes</p>
+                </div>
+                <div class="actions-grid">
+                    <button onclick="navigateTo('mantenimientos')" class="action-btn amber">
+                        <div class="action-icon">🔧</div>
+                        <span>Solicitar Mantenimiento</span>
+                    </button>
+                    <button onclick="navigateTo('embarcaciones')" class="action-btn green">
+                        <div class="action-icon">🛥️</div>
+                        <span>Ver Embarcaciones</span>
+                    </button>
+                    <button onclick="navigateTo('perfil')" class="action-btn purple">
+                        <div class="action-icon">👤</div>
+                        <span>Mi Perfil</span>
+                    </button>
+                    <button onclick="reportProblem()" class="action-btn red">
+                        <div class="action-icon">⚠️</div>
+                        <span>Reportar Problema</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

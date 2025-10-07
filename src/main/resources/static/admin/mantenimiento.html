@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimiento - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="mantenimiento.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span>Administrador</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="inventario.html" class="nav-link">Inventario</a>
+            <a href="propietarios.html" class="nav-link">Propietarios</a>
+            <a href="mantenimiento.html" class="nav-link active">Mantenimiento</a>
+            <a href="pagos.html" class="nav-link">Pagos</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Gestión de Mantenimiento</h2>
+                <p>Administra los mantenimientos de las embarcaciones</p>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon blue">
+                        🔧
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="totalMaintenances">0</h3>
+                        <p>Total Mantenimientos</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon amber">
+                        ⏳
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="pendingMaintenances">0</h3>
+                        <p>Pendientes</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon green">
+                        ✅
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="completedMaintenances">0</h3>
+                        <p>Completados</p>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon purple">
+                        💰
+                    </div>
+                    <div class="metric-content">
+                        <h3 id="totalCost">$0</h3>
+                        <p>Costo Total</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="filters-section">
+                <div class="filters-grid">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar mantenimientos..." class="search-input">
+                        <button class="search-btn">🔍</button>
+                    </div>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Todos los estados</option>
+                        <option value="PROGRAMADO">Programado</option>
+                        <option value="EN_PROCESO">En Proceso</option>
+                        <option value="COMPLETADO">Completado</option>
+                    </select>
+                    <select id="typeFilter" class="filter-select">
+                        <option value="all">Todos los tipos</option>
+                        <option value="PREVENTIVO">Preventivo</option>
+                        <option value="CORRECTIVO">Correctivo</option>
+                        <option value="PREDICTIVO">Predictivo</option>
+                    </select>
+                    <button onclick="openAddModal()" class="add-btn">
+                        ➕ Nuevo Mantenimiento
+                    </button>
+                </div>
+            </div>
+
+            <!-- Maintenance Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Lista de Mantenimientos</h3>
+                    <span id="tableCount">0 mantenimientos</span>
+                </div>
+                <table class="maintenance-table">
+                    <thead>
+                        <tr>
+                            <th>Embarcación</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Prioridad</th>
+                            <th>Fecha Programada</th>
+                            <th>Fecha Realizada</th>
+                            <th>Costo</th>
+                            <th>Descripción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenanceTableBody">
+                        <!-- Maintenances will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="maintenanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Agregar Nuevo Mantenimiento</h3>
+                <button onclick="closeModal()" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="maintenanceForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="boatSelect">Embarcación</label>
+                            <select id="boatSelect" name="boatId" required>
+                                <option value="">Seleccionar embarcación...</option>
+                                <!-- Boats will be loaded here -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="maintenanceType">Tipo de Mantenimiento</label>
+                            <select id="maintenanceType" name="type" required>
+                                <option value="PREVENTIVO">Preventivo</option>
+                                <option value="CORRECTIVO">Correctivo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="maintenanceStatus">Estado</label>
+                            <select id="maintenanceStatus" name="status" required>
+                                <option value="PROGRAMADO">Programado</option>
+                                <option value="EN_PROCESO">En Proceso</option>
+                                <option value="COMPLETADO">Completado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="priority">Prioridad</label>
+                            <select id="priority" name="priority" required>
+                                <option value="BAJA">Baja</option>
+                                <option value="MEDIA">Media</option>
+                                <option value="ALTA">Alta</option>
+                                <option value="CRITICA">Crítica</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="scheduledDate">Fecha Programada</label>
+                            <input type="datetime-local" id="scheduledDate" name="dateScheduled" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="performedDate">Fecha Realizada</label>
+                            <input type="datetime-local" id="performedDate" name="datePerformed">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cost">Costo (COP)</label>
+                            <input type="number" id="cost" name="cost" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="description">Descripción</label>
+                            <textarea id="description" name="description" rows="3" placeholder="Describa el mantenimiento..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn-secondary">Cancelar</button>
+                <button onclick="saveMaintenance()" class="btn-primary" id="saveBtn">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="mantenimiento.js"></script>
+</body>
+</html>

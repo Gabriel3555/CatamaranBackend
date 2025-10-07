@@ -3,6 +3,7 @@ package com.catamaran.catamaranbackend.controller;
 import com.catamaran.catamaranbackend.auth.infrastructure.repository.UserRepositoryJpa;
 import com.catamaran.catamaranbackend.domain.BoatDocumentEntity;
 import com.catamaran.catamaranbackend.domain.BoatEntity;
+import com.catamaran.catamaranbackend.dto.CreateBoatRequest;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,12 +25,21 @@ public class BoatController {
     private final UserRepositoryJpa userRepository;
 
     @PostMapping
-    public ResponseEntity<BoatEntity> createBoat(@RequestBody BoatEntity boat) {
-        boat.setBalance(boat.getPrice() != null ? boat.getPrice() : 0.0);
+    public ResponseEntity<BoatEntity> createBoat(@RequestBody CreateBoatRequest request) {
+        BoatEntity boat = new BoatEntity();
+        boat.setType(request.type());
+        boat.setName(request.name());
+        boat.setModel(request.model());
+        boat.setLocation(request.location());
+
+        boat.setPrice(request.price() != null ? request.price() : 0.0);
+        boat.setBalance(0.0);
+        boat.setDocuments(new ArrayList<>());
 
         BoatEntity saved = boatRepository.save(boat);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
+
 
     @GetMapping("/{id}/balance")
     public ResponseEntity<Double> getBoatBalance(@PathVariable Long id) {
@@ -140,7 +150,6 @@ public class BoatController {
                 userRepository.findById(userId).map(user -> {
                     if (boat.getOwner() == null) {
                         boat.setOwner(user);
-                        // Agregar precio del barco al balance si es la primera asignación
                         boat.setBalance(boat.getBalance() + (boat.getPrice() != null ? boat.getPrice() : 0.0));
                         BoatEntity updated = boatRepository.save(boat);
                         return ResponseEntity.ok(updated);

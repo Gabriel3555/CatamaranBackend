@@ -1,6 +1,9 @@
 package com.catamaran.catamaranbackend.controller;
 
 import com.catamaran.catamaranbackend.domain.MaintananceEntity;
+import com.catamaran.catamaranbackend.domain.PaymentEntity;
+import com.catamaran.catamaranbackend.domain.PaymentStatus;
+import com.catamaran.catamaranbackend.domain.ReasonPayment;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import com.catamaran.catamaranbackend.repository.MaintananceRepository;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -25,14 +29,20 @@ public class MaintananceController {
     ) {
         return boatRepository.findById(boatId)
                 .map(boat -> {
+                    if (request.getCost() != null) {
+                        PaymentEntity payment = PaymentEntity.builder()
+                                .mount(request.getCost())
+                                .date(LocalDateTime.now())
+                                .status(PaymentStatus.POR_PAGAR)
+                                .reason(ReasonPayment.MANTENIMIENTO)
+                                .invoice_url(null)
+                                .user(boat.getOwner())
+                                .build();
+                        request.setPayment(payment);
+                    }
+
                     request.setBoat(boat);
                     MaintananceEntity saved = maintananceRepository.save(request);
-
-                    // Aumentar deuda del barco
-                    if (request.getCost() != null) {
-                        boat.setBalance(boat.getBalance() + request.getCost());
-                        boatRepository.save(boat);
-                    }
 
                     return ResponseEntity.status(HttpStatus.CREATED).body(saved);
                 })

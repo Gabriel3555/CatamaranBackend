@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA DE GESTIÓN - Login</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Elementos decorativos de fondo -->
+        <div class="background-elements">
+            <div class="bg-circle bg-circle-1"></div>
+            <div class="bg-circle bg-circle-2"></div>
+        </div>
+
+        <div class="login-card-wrapper">
+            <!-- Logo section -->
+            <div class="logo-section">
+                <div class="logo-grid">
+                    <a href="/" class="logo-link">
+                        <div class="logo-container">
+                            <img src="logo-manta.jpg" alt="Logo Manta" class="logo-image">
+                        </div>
+                    </a>
+                    <a href="/contacto" class="logo-link">
+                        <div class="logo-container">
+                            <img src="logo-alianza.jpg" alt="Logo Alianza" class="logo-image">
+                        </div>
+                    </a>
+                </div>
+                <h1 class="title">SISTEMA DE GESTIÓN</h1>
+            </div>
+
+            <!-- Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" id="cardTitle">
+                        <span class="icon">🛡️</span>
+                        <span>Acceso Administrativo</span>
+                    </h2>
+                    <p class="card-subtitle" id="cardSubtitle">
+                        Ingresa con tu cuenta de administrador
+                    </p>
+                </div>
+
+                <div class="card-content">
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab-button active" data-tab="admin" onclick="switchTab('admin')">
+                            <span class="tab-icon">🛡️</span>
+                            <span>Administrador</span>
+                        </button>
+                        <button class="tab-button" data-tab="owner" onclick="switchTab('owner')">
+                            <span class="tab-icon">👤</span>
+                            <span>Propietario</span>
+                        </button>
+                    </div>
+
+                    <!-- Error message -->
+                    <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+                    <!-- Admin Form -->
+                    <form class="login-form" id="adminForm" onsubmit="handleLogin(event, 'admin')">
+                        <div class="form-group">
+                            <label for="admin-username" class="form-label">Usuario</label>
+                            <input
+                                type="text"
+                                id="admin-username"
+                                name="username"
+                                placeholder="admin"
+                                required
+                                class="form-input"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-password" class="form-label">Contraseña</label>
+                            <div class="password-input-container">
+                                <input
+                                    type="password"
+                                    id="admin-password"
+                                    name="password"
+                                    placeholder="••••••••"
+                                    required
+                                    class="form-input password-input"
+                                >
+                                <button type="button" class="password-toggle" onclick="togglePassword('admin-password')">
+                                    <span class="eye-icon" id="admin-eye-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-button admin-button" id="adminSubmitBtn">
+                            <span class="button-text">Iniciar Sesión</span>
+                            <div class="spinner" id="adminSpinner" style="display: none;"></div>
+                        </button>
+                    </form>
+
+                    <!-- Owner Form -->
+                    <form class="login-form hidden" id="ownerForm" onsubmit="handleLogin(event, 'owner')">
+                        <div class="form-group">
+                            <label for="owner-username" class="form-label">Usuario</label>
+                            <input
+                                type="text"
+                                id="owner-username"
+                                name="username"
+                                placeholder="tu_usuario"
+                                required
+                                class="form-input"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="owner-password" class="form-label">Contraseña</label>
+                            <div class="password-input-container">
+                                <input
+                                    type="password"
+                                    id="owner-password"
+                                    name="password"
+                                    placeholder="••••••••"
+                                    required
+                                    class="form-input password-input"
+                                >
+                                <button type="button" class="password-toggle" onclick="togglePassword('owner-password')">
+                                    <span class="eye-icon" id="owner-eye-icon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-button owner-button" id="ownerSubmitBtn">
+                            <span class="button-text">Iniciar Sesión</span>
+                            <div class="spinner" id="ownerSpinner" style="display: none;"></div>
+                        </button>
+
+                        <div class="forgot-password">
+                            <p class="forgot-text">
+                                ¿Olvidaste tu contraseña?{" "}
+                                <a href="/contacto" class="forgot-link">Contacta al administrador</a>
+                            </p>
+                        </div>
+                    </form>
+
+                    <!-- Footer -->
+                    <div class="card-footer">
+                        <a href="/" class="back-link">
+                            <span class="back-icon">←</span>
+                            <span>Volver al sitio público</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="page-footer">
+                <p>© 2024 MANTA - Alianza Carrocera de Boyacá S.A.S.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>
