@@ -185,6 +185,16 @@ function getPriorityClass(priority) {
     return `priority-${priority.toLowerCase()}`;
 }
 
+// Download receipt function
+function downloadReceipt(paymentId) {
+    const link = document.createElement('a');
+    link.href = `/api/v1/payments/${paymentId}/download-receipt`;
+    link.download = ''; // Let the server set the filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 // Filter maintenances based on search and filters
 function filterMaintenances() {
     const searchTerm = searchInput.value.toLowerCase();
@@ -242,7 +252,8 @@ function renderMaintenances() {
                     <div class="action-buttons">
                         <button class="action-btn edit-btn" onclick="editMaintenance(${maintenance.id})">Editar</button>
                         <button class="action-btn delete-btn" onclick="deleteMaintenance(${maintenance.id})">Eliminar</button>
-                        <button class="action-btn receipt-btn" onclick="openReceiptModal(${maintenance.payment && maintenance.payment.id ? maintenance.payment.id : null})">Añadir Recibo</button>
+                        ${maintenance.payment && !maintenance.payment.invoice_url ? `<button class="action-btn receipt-btn" onclick="openReceiptModal(${maintenance.payment.id})">Añadir Recibo</button>` : ''}
+                        ${maintenance.payment && maintenance.payment.invoice_url ? `<button class="action-btn download-btn" onclick="downloadReceipt(${maintenance.payment.id})">Descargar Recibo</button>` : ''}
                     </div>
                 </td>
             `;
@@ -309,12 +320,18 @@ async function saveMaintenance(event) {
 
     const formData = new FormData(maintenanceForm);
     const boatId = formData.get('boatId');
+
+    if (!boatId || boatId.trim() === '') {
+        alert('Por favor selecciona una embarcación');
+        return;
+    }
+
     const maintenanceData = {
         type: formData.get('type'),
         status: formData.get('status'),
         priority: formData.get('priority'),
-        dateScheduled: formData.get('dateScheduled') ? new Date(formData.get('dateScheduled')).toISOString() : null,
-        datePerformed: formData.get('datePerformed') ? new Date(formData.get('datePerformed')).toISOString() : null,
+        dateScheduled: formData.get('dateScheduled') ? formData.get('dateScheduled') + ':00' : null,
+        datePerformed: formData.get('datePerformed') ? formData.get('datePerformed') + ':00' : null,
         description: formData.get('description'),
         cost: parseFloat(formData.get('cost')) || null
     };
@@ -433,10 +450,10 @@ async function uploadReceipt() {
 
     try {
         const uploadData = new FormData();
-        uploadData.append('receipt', receiptFile);
+        uploadData.append('file', receiptFile);
 
-        const response = await fetch(`/api/v1/payments/${currentPaymentId}/attach-receipt`, {
-            method: 'PUT',
+        const response = await fetch(`/api/v1/payments/${currentPaymentId}/receipt`, {
+            method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('jwt')}`
             },
@@ -444,18 +461,10 @@ async function uploadReceipt() {
         });
 
         if (response.ok) {
-            const updatedPayment = await response.json();
             alert('Recibo subido exitosamente');
 
-            // Update the maintenance data
-            maintenances.forEach(maintenance => {
-                if (maintenance.payment && maintenance.payment.id === currentPaymentId) {
-                    maintenance.payment = updatedPayment;
-                }
-            });
-
-            filteredMaintenances = [...maintenances];
-            renderMaintenances();
+            // Reload the maintenances to reflect changes
+            loadMaintenances();
             closeReceiptModal();
         } else {
             const error = response.statusText || 'Error desconocido';
@@ -489,5 +498,6 @@ window.deleteMaintenance = deleteMaintenance;
 window.openReceiptModal = openReceiptModal;
 window.closeReceiptModal = closeReceiptModal;
 window.uploadReceipt = uploadReceipt;
+window.downloadReceipt = downloadReceipt;
 window.logout = logout;
 window.navigateTo = navigateTo;

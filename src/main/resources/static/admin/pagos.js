@@ -294,11 +294,11 @@ function renderPayments() {
         filteredPayments.forEach(payment => {
             const row = document.createElement('tr');
             const paymentDate = new Date(payment.date).toLocaleString('es-ES');
-            const owner = payment.boat && payment.boat.owner;
+            const boat = payment.boat;
 
             row.innerHTML = `
                 <td>${payment.id}</td>
-                <td>${owner ? `${owner.fullName}<br><small style="color: #6b7280;">${owner.email}</small>` : 'Sin propietario'}</td>
+                <td>${boat ? boat.name : 'Sin embarcación'}</td>
                 <td><span class="reason-badge ${getReasonClass(payment.reason)}">${formatPaymentReason(payment.reason)}</span></td>
                 <td class="price">${formatPrice(payment.mount)}</td>
                 <td>${paymentDate}</td>
@@ -339,11 +339,11 @@ function viewPayment(id) {
     const payment = payments.find(p => p.id === id);
     if (!payment) return;
 
-    const owner = payment.boat && payment.boat.owner;
-    const ownerInfo = owner ? `Propietario: ${owner.fullName}\nEmail: ${owner.email}` : 'Sin propietario asignado';
+    const boat = payment.boat;
+    const boatInfo = boat ? `Embarcación: ${boat.name}` : 'Sin embarcación asignada';
 
     // For now, just show an alert with payment details
-    alert(`Pago #${payment.id}\n\n${ownerInfo}\nMonto: ${formatPrice(payment.mount)}\nRazón: ${formatPaymentReason(payment.reason)}\nFecha: ${new Date(payment.date).toLocaleString('es-ES')}\nFactura: ${payment.invoice_url || 'Sin factura'}`);
+    alert(`Pago #${payment.id}\n\n${boatInfo}\nMonto: ${formatPrice(payment.mount)}\nRazón: ${formatPaymentReason(payment.reason)}\nFecha: ${new Date(payment.date).toLocaleString('es-ES')}\nFactura: ${payment.invoice_url || 'Sin factura'}`);
 }
 
 // Delete payment
@@ -406,15 +406,15 @@ function openReceiptModal(paymentId) {
     const payment = payments.find(p => p.id === paymentId);
     if (!payment) return;
 
-    const owner = payment.boat && payment.boat.owner;
-    const ownerName = owner ? owner.fullName : 'Sin propietario';
+    const boat = payment.boat;
+    const boatName = boat ? boat.name : 'Sin embarcación';
 
     // Show payment info
     document.getElementById('receiptInfo').innerHTML = `
         <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0; color: #1f2937;">Información del Pago</h4>
             <p style="margin: 5px 0;"><strong>ID:</strong> ${payment.id}</p>
-            <p style="margin: 5px 0;"><strong>Propietario:</strong> ${ownerName}</p>
+            <p style="margin: 5px 0;"><strong>Embarcación:</strong> ${boatName}</p>
             <p style="margin: 5px 0;"><strong>Monto:</strong> ${formatPrice(payment.mount)}</p>
             <p style="margin: 5px 0;"><strong>Razón:</strong> ${formatPaymentReason(payment.reason)}</p>
             <p style="margin: 5px 0;"><strong>Fecha:</strong> ${new Date(payment.date).toLocaleString('es-ES')}</p>
@@ -480,16 +480,12 @@ async function attachReceipt() {
         });
 
         if (response.ok) {
-            const updatedPayment = await response.json();
-
-            // Update payment in local array
-            const index = payments.findIndex(p => p.id === paymentId);
-            if (index !== -1) {
-                payments[index] = updatedPayment;
-                filteredPayments = [...payments];
-                updateMetrics();
-                renderPayments();
-            }
+            // Reload the table to reflect changes
+            const searchTerm = searchInput.value;
+            const reasonValue = reasonFilter.value;
+            const monthValue = monthFilter.value;
+            const statusValue = statusFilter.value;
+            loadPayments(currentPage, searchTerm, reasonValue, monthValue, statusValue);
 
             alert('Recibo adjuntado exitosamente.');
             closeReceiptModal();

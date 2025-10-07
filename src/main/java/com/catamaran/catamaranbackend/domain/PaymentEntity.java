@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @Entity
@@ -32,6 +33,7 @@ public class PaymentEntity {
 
     @OneToOne
     @JoinColumn(name = "maintanance_id")
+    @JsonIgnore
     private MaintananceEntity maintanance;
 
     @ManyToOne

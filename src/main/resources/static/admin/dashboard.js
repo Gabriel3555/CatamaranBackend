@@ -144,12 +144,21 @@ function logout() {
 
 // Navigation function
 function navigateTo(page) {
-    // In a real application, this would navigate to different pages
-    // For now, we'll just show an alert
-    alert(`Navegando a: ${page}`);
+    // Map page names to actual HTML files
+    const pageMap = {
+        'inventario': 'inventario.html',
+        'propietarios': 'propietarios.html',
+        'mantenimiento': 'mantenimiento.html',
+        'pagos': 'pagos.html',
+        'reportes': 'pagos.html' // Redirect reports to payments for now
+    };
 
-    // You could implement actual navigation like:
-    // window.location.href = `${page}.html`;
+    const targetPage = pageMap[page];
+    if (targetPage) {
+        window.location.href = targetPage;
+    } else {
+        alert(`Página no encontrada: ${page}`);
+    }
 }
 
 // API call examples (for future implementation)

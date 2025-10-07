@@ -121,24 +121,24 @@
 }
 
 .maintenance-table th {
-    padding: 18px 16px;
+    padding: 12px 12px;
     text-align: left;
     font-weight: 600;
     color: #374151;
-    font-size: 14px;
+    font-size: 13px;
     border-bottom: 1px solid #e5e7eb;
-    min-width: 120px;
+    min-width: 100px;
 }
 
-.maintenance-table th:nth-child(1) { min-width: 200px; } /* Embarcación */
-.maintenance-table th:nth-child(8) { min-width: 250px; } /* Descripción */
+.maintenance-table th:nth-child(1) { min-width: 150px; } /* Embarcación */
+.maintenance-table th:nth-child(8) { min-width: 180px; } /* Descripción */
 .maintenance-table th:nth-child(9) { min-width: 120px; } /* Estado de Pago */
-.maintenance-table th:nth-child(10) { min-width: 180px; } /* Acciones */
+.maintenance-table th:nth-child(10) { min-width: 150px; } /* Acciones */
 
 .maintenance-table td {
-    padding: 18px 16px;
+    padding: 12px 12px;
     border-bottom: 1px solid #f3f4f6;
-    font-size: 14px;
+    font-size: 13px;
     color: #374151;
     word-wrap: break-word;
 }
@@ -149,9 +149,9 @@
 
 /* Status Badges */
 .status-badge {
-    padding: 6px 12px;
+    padding: 4px 8px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
 }
@@ -176,9 +176,9 @@
 
 /* Priority Badges */
 .priority-badge {
-    padding: 6px 12px;
+    padding: 4px 8px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
 }
@@ -209,9 +209,9 @@
 
 /* Payment Status Badges */
 .payment-badge {
-    padding: 6px 12px;
+    padding: 4px 8px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
 }
@@ -241,10 +241,10 @@
 }
 
 .action-btn {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border: none;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;

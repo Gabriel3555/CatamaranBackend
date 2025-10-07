@@ -1,7 +1,8 @@
 package com.catamaran.catamaranbackend.domain;
 
 public enum MaintenancePriority {
-    ALTA,
+    BAJA,
     MEDIA,
-    BAJA
+    ALTA,
+    CRITICA
 }

@@ -58,6 +58,26 @@ public class DataInitializer {
 
                 userRepository.saveAll(admins);
 
+                // Create Sample Boats
+                if (boatRepository.count() == 0) {
+                    List<BoatEntity> boats = Arrays.asList(
+                            BoatEntity.builder()
+                                    .name("Catamaran A")
+                                    .model("Model A")
+                                    .type(BoatType.TURISMO)
+                                    .price(1000000.0)
+                                    .balance(0.0)
+                                    .build(),
+                            BoatEntity.builder()
+                                    .name("Catamaran B")
+                                    .model("Model B")
+                                    .type(BoatType.DISENO_EXCLUSIVO)
+                                    .price(1500000.0)
+                                    .balance(0.0)
+                                    .build()
+                    );
+                    boatRepository.saveAll(boats);
+                }
             }
         };
     }
