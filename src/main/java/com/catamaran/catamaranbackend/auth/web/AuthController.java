@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -90,13 +91,16 @@ public class AuthController {
         // Set default encrypted password
         String encryptedPassword = passwordEncoder.encode("owner123");
 
-        UserEntity owner = new UserEntity();
-        owner.setEmail(request.getEmail());
-        owner.setFullName(request.getFullName());
-        owner.setPhoneNumber(request.getPhoneNumber());
-        owner.setStatus(true);
-        owner.setRole(Role.PROPIETARIO);
-        owner.setPassword(encryptedPassword);
+        UserEntity owner = UserEntity.builder()
+                .email(request.getEmail())
+                .username(request.getUsername())
+                .uniqueId(UUID.randomUUID())
+                .fullName(request.getFullName())
+                .phoneNumber(request.getPhoneNumber())
+                .status(true)
+                .role(Role.PROPIETARIO)
+                .password(encryptedPassword)
+                .build();
 
         userRepository.save(owner);
         return ResponseEntity.status(HttpStatus.CREATED).build();
