@@ -59,6 +59,7 @@ public class SecurityConfig  {
                      http.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers(HttpMethod.GET, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
                      http.requestMatchers(HttpMethod.PUT, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
+                     http.requestMatchers(HttpMethod.PATCH, "/api/v1/auth/{id}/password").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
                      http.requestMatchers("/api/v1/auth/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/boat/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/payments/**").hasAuthority("ROLE_ADMIN");
@@ -89,7 +90,7 @@ public class SecurityConfig  {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService){
+    public AuthenticationProvider authenticationProvider(UserDetailsServiceImp userDetailsService){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
