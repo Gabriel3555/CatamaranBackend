@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import com.catamaran.catamaranbackend.domain.PaymentEntity;
@@ -44,6 +45,14 @@ public class UserEntity {
     private UUID uniqueId;
     private String fullName;
     private String phoneNumber;
+
+    @Column(name = "reset_token")
+    @JsonIgnore
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    @JsonIgnore
+    private LocalDateTime resetTokenExpiry;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     @JsonIgnore

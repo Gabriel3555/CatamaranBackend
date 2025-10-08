@@ -40,13 +40,18 @@ public class SecurityConfig  {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtTokenValidator(jwtUtils), BasicAuthenticationFilter.class)
                 .authorizeHttpRequests(http -> {
+                     // Public endpoints - must be first
                      http.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                      http.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll();
-                     http.requestMatchers(HttpMethod.POST, "/api/v1/auth/create-owner").permitAll();
+                     http.requestMatchers(HttpMethod.POST, "/api/v1/auth/forgot-password").permitAll();
+                     http.requestMatchers(HttpMethod.POST, "/api/v1/auth/reset-password").permitAll();
+                     http.requestMatchers(HttpMethod.GET, "/api/v1/auth/validate-reset-token").permitAll();
                      http.requestMatchers(
                              "/login.html",
                              "/login.css",
                              "/login.js",
+                             "/forgot-password.html",
+                             "/reset-password.html",
                              "/logo-alianza.jpg",
                              "/common-pagination.css",
                              "/common-pagination.js",
@@ -57,7 +62,11 @@ public class SecurityConfig  {
                              "/v3/api-docs/**",
                              "/v3/api-docs.yaml"
                      ).permitAll();
+                     
+                     // Authenticated endpoints
                      http.requestMatchers("/api/v1/boat/documents/**").authenticated();
+                     
+                     // Role-specific endpoints - specific rules before general ones
                      http.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers(HttpMethod.GET, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
                      http.requestMatchers(HttpMethod.PUT, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
@@ -67,6 +76,8 @@ public class SecurityConfig  {
                      http.requestMatchers("/api/v1/payments/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/maintenances/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/owner/**").hasAuthority("ROLE_PROPIETARIO");
+                     
+                     // Default - require authentication
                      http.anyRequest().authenticated();
                  });
 

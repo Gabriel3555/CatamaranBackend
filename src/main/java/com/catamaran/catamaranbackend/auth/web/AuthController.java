@@ -2,7 +2,11 @@ package com.catamaran.catamaranbackend.auth.web;
 
 import com.catamaran.catamaranbackend.auth.application.dto.AuthRequest;
 import com.catamaran.catamaranbackend.auth.application.dto.AuthResponse;
+import com.catamaran.catamaranbackend.auth.application.dto.ForgotPasswordRequest;
+import com.catamaran.catamaranbackend.auth.application.dto.PasswordResetResponse;
+import com.catamaran.catamaranbackend.auth.application.dto.ResetPasswordRequest;
 import com.catamaran.catamaranbackend.auth.application.port.LoginUseCase;
+import com.catamaran.catamaranbackend.auth.application.service.PasswordRecoveryService;
 import com.catamaran.catamaranbackend.auth.application.service.UserDetailsServiceImp;
 import com.catamaran.catamaranbackend.auth.infrastructure.entity.UserEntity;
 import com.catamaran.catamaranbackend.auth.infrastructure.repository.UserRepositoryJpa;
@@ -41,7 +45,8 @@ public class AuthController {
     private final BoatRepository boatRepository;
     private final LoginUseCase loginUseCase;
     private final PasswordEncoder passwordEncoder;
-    private final UserDetailsServiceImp  userDetailsService;
+    private final UserDetailsServiceImp userDetailsService;
+    private final PasswordRecoveryService passwordRecoveryService;
 
     @Operation(
             summary = "Sign in",
@@ -174,5 +179,56 @@ public class AuthController {
                     return ResponseEntity.noContent().build();
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(
+            summary = "Solicitar recuperación de contraseña",
+            description = "Envía un correo electrónico con un enlace para restablecer la contraseña"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Solicitud procesada exitosamente",
+            content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
+    )
+    @PostMapping("/forgot-password")
+    public ResponseEntity<PasswordResetResponse> forgotPassword(
+            @RequestBody @Valid ForgotPasswordRequest request
+    ) {
+        PasswordResetResponse response = passwordRecoveryService.requestPasswordReset(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Restablecer contraseña",
+            description = "Restablece la contraseña usando el token recibido por correo electrónico"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Contraseña restablecida exitosamente",
+            content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
+    )
+    @PostMapping("/reset-password")
+    public ResponseEntity<PasswordResetResponse> resetPassword(
+            @RequestBody @Valid ResetPasswordRequest request
+    ) {
+        PasswordResetResponse response = passwordRecoveryService.resetPassword(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Validar token de recuperación",
+            description = "Verifica si un token de recuperación es válido y no ha expirado"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Validación del token",
+            content = @Content(schema = @Schema(implementation = PasswordResetResponse.class))
+    )
+    @GetMapping("/validate-reset-token")
+    public ResponseEntity<PasswordResetResponse> validateResetToken(
+            @RequestParam String token
+    ) {
+        PasswordResetResponse response = passwordRecoveryService.validateResetToken(token);
+        return ResponseEntity.ok(response);
     }
 }
