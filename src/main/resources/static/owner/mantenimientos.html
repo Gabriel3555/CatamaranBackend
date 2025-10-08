@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimientos - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">Propietario</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="embarcaciones.html" class="nav-link">Embarcaciones</a>
+            <a href="mantenimientos.html" class="nav-link active">Mantenimientos</a>
+            <a href="perfil.html" class="nav-link">Perfil</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Mis Mantenimientos</h2>
+                <p>Historial completo de mantenimientos de tus embarcaciones</p>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="filters-section">
+                <div class="filters-grid">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar mantenimientos..." class="search-input">
+                        <button class="search-btn">🔍</button>
+                    </div>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Todos los estados</option>
+                        <option value="PROGRAMADO">Programado</option>
+                        <option value="EN_PROCESO">En Proceso</option>
+                        <option value="COMPLETADO">Completado</option>
+                    </select>
+                    <select id="typeFilter" class="filter-select">
+                        <option value="all">Todos los tipos</option>
+                        <option value="PREVENTIVO">Preventivo</option>
+                        <option value="CORRECTIVO">Correctivo</option>
+                        <option value="PREDICTIVO">Predictivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Maintenance Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Lista de Mantenimientos</h3>
+                    <span id="tableCount">0 mantenimientos</span>
+                </div>
+                <table class="maintenance-table">
+                    <thead>
+                        <tr>
+                            <th>Embarcación</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Prioridad</th>
+                            <th>Fecha Programada</th>
+                            <th>Fecha Realizada</th>
+                            <th>Costo</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenanceTableBody">
+                        <!-- Maintenances will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="mantenimientos.js"></script>
+</body>
+</html>

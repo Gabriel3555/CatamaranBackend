@@ -1,0 +1,251 @@
+// Owner Profile Page JavaScript
+
+// DOM elements - will be initialized after DOM load
+let editProfileModal;
+let profileForm;
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DOM elements
+    editProfileModal = document.getElementById('editProfileModal');
+    profileForm = document.getElementById('profileForm');
+
+    checkAuthentication();
+    loadProfileData();
+});
+
+// Authentication check
+function checkAuthentication() {
+    const userType = localStorage.getItem('userType');
+    const jwt = localStorage.getItem('jwt');
+
+    if (!userType || userType !== 'owner' || !jwt) {
+        window.location.href = '../login.html';
+        return;
+    }
+
+    // Update user name in header
+    const username = localStorage.getItem('username') || 'Propietario';
+    document.getElementById('userName').textContent = username;
+}
+
+// Get authentication headers
+function getAuthHeaders() {
+    const jwt = localStorage.getItem('jwt');
+    return {
+        'Content-Type': 'application/json',
+        ...(jwt ? { 'Authorization': `Bearer ${jwt}` } : {})
+    };
+}
+
+// Load profile data from API
+async function loadProfileData() {
+    try {
+        const userId = localStorage.getItem('userId');
+        const jwt = localStorage.getItem('jwt');
+
+        console.log('Loading profile data for userId:', userId);
+        console.log('JWT token present:', !!jwt);
+
+        if (!userId) {
+            console.error('User ID not found in localStorage');
+            showProfileError('Usuario no identificado. Por favor, inicia sesión nuevamente.');
+            return;
+        }
+
+        if (!jwt) {
+            console.error('JWT token not found');
+            showProfileError('Sesión expirada. Por favor, inicia sesión nuevamente.');
+            return;
+        }
+
+        // Load user profile
+        console.log('Fetching user profile from:', `/api/v1/auth/${userId}`);
+        const userResponse = await fetch(`/api/v1/auth/${userId}`, {
+            headers: getAuthHeaders()
+        });
+
+        console.log('User profile response status:', userResponse.status);
+
+        if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log('User data received:', userData);
+            displayUserProfile(userData);
+        } else {
+            const errorText = await userResponse.text();
+            console.error('Failed to load user profile:', userResponse.status, errorText);
+            showProfileError(`Error al cargar el perfil: ${userResponse.status}`);
+        }
+
+        // Load dashboard data for statistics
+        console.log('Fetching dashboard data from:', `/api/v1/owner/dashboard/${userId}`);
+        const dashboardResponse = await fetch(`/api/v1/owner/dashboard/${userId}`, {
+            headers: getAuthHeaders()
+        });
+
+        console.log('Dashboard response status:', dashboardResponse.status);
+
+        if (dashboardResponse.ok) {
+            const dashboardData = await dashboardResponse.json();
+            console.log('Dashboard data received:', dashboardData);
+            displayAccountStatistics(dashboardData);
+        } else {
+            const errorText = await dashboardResponse.text();
+            console.error('Failed to load dashboard data:', dashboardResponse.status, errorText);
+            // Don't show error for dashboard data, just log it
+        }
+
+    } catch (error) {
+        console.error('Error loading profile data:', error);
+        showProfileError('Error de conexión. Inténtalo de nuevo.');
+    }
+}
+
+// Display user profile information
+function displayUserProfile(userData) {
+    document.getElementById('fullName').textContent = userData.fullName || userData.username || 'No especificado';
+    document.getElementById('username').textContent = userData.username || 'No especificado';
+    document.getElementById('email').textContent = userData.email || 'No especificado';
+    document.getElementById('registrationDate').textContent = userData.createdAt ?
+        new Date(userData.createdAt).toLocaleDateString('es-ES') : 'No disponible';
+
+    // Set form values for editing
+    document.getElementById('editFullName').value = userData.fullName || '';
+    document.getElementById('editEmail').value = userData.email || '';
+    document.getElementById('editPhone').value = userData.phone || '';
+    document.getElementById('editAddress').value = userData.address || '';
+}
+
+// Display account statistics
+function displayAccountStatistics(data) {
+    const metrics = data.metrics || {};
+    const user = data.user || {};
+
+    document.getElementById('totalBoats').textContent = metrics.totalBoats || 0;
+    document.getElementById('totalMaintenances').textContent =
+        (metrics.pendingMaintenances || 0) + (metrics.completedMaintenances || 0);
+    document.getElementById('totalDocuments').textContent = metrics.totalDocuments || 0;
+
+    // Calculate total debt from boats
+    const boats = data.boats || [];
+    let totalDebt = 0;
+    boats.forEach(boat => {
+        totalDebt += (boat.maintenanceDebt || 0) + (boat.boatDebt || 0);
+    });
+
+    document.getElementById('totalDebt').textContent = formatPrice(totalDebt);
+}
+
+// Format price in Colombian pesos
+function formatPrice(price) {
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0
+    }).format(price);
+}
+
+// Show error message
+function showProfileError(message) {
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.innerHTML = `
+            <div class="container">
+                <div class="page-header">
+                    <h2>Error</h2>
+                </div>
+                <div class="section-card">
+                    <div style="text-align: center; padding: 40px; color: #dc2626;">
+                        <h3>⚠️ ${message}</h3>
+                        <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Reintentar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Edit profile
+function editProfile() {
+    editProfileModal.style.display = 'block';
+}
+
+// Close modal
+function closeModal() {
+    editProfileModal.style.display = 'none';
+}
+
+// Save profile changes
+async function saveProfile() {
+    const formData = new FormData(profileForm);
+    const profileData = {
+        fullName: formData.get('fullName'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        address: formData.get('address')
+    };
+
+    try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`/api/v1/auth/${userId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(profileData)
+        });
+
+        if (response.ok) {
+            const updatedUser = await response.json();
+            displayUserProfile(updatedUser);
+            closeModal();
+            alert('Perfil actualizado exitosamente');
+        } else {
+            const error = await response.text();
+            alert('Error al actualizar el perfil: ' + error);
+        }
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Error al guardar los cambios. Inténtalo de nuevo.');
+    }
+}
+
+// Change password (placeholder)
+function changePassword() {
+    alert('Funcionalidad de cambio de contraseña próximamente disponible');
+}
+
+// Enable 2FA (placeholder)
+function enable2FA() {
+    alert('Funcionalidad de autenticación de dos factores próximamente disponible');
+}
+
+// Logout function
+function logout() {
+    localStorage.removeItem('userType');
+    localStorage.removeItem('username');
+    localStorage.removeItem('jwt');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '../login.html';
+}
+
+// Navigation function
+function navigateTo(page) {
+    window.location.href = `${page}.html`;
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target === editProfileModal) {
+        closeModal();
+    }
+};
+
+// Export functions for HTML onclick handlers
+window.editProfile = editProfile;
+window.closeModal = closeModal;
+window.saveProfile = saveProfile;
+window.changePassword = changePassword;
+window.enable2FA = enable2FA;
+window.logout = logout;
+window.navigateTo = navigateTo;

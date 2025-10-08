@@ -109,8 +109,8 @@ function updateOwnerDashboard(data) {
     // Update upcoming maintenances
     loadUpcomingEventsFromData(data.upcomingMaintenances);
 
-    // Update recent maintenances
-    loadRecentMaintenancesFromData(data.recentMaintenances);
+    // Update all maintenances
+    loadAllMaintenancesFromData(data.allMaintenances);
 }
 
 // Load boats from API data
@@ -190,32 +190,38 @@ function loadUpcomingEventsFromData(upcomingMaintenances) {
     }).join('');
 }
 
-// Load recent maintenances from API data
-function loadRecentMaintenancesFromData(recentMaintenances) {
+// Load all maintenances from API data
+function loadAllMaintenancesFromData(allMaintenances) {
     const maintenancesList = document.getElementById('maintenancesList');
 
-    if (recentMaintenances.length === 0) {
-        maintenancesList.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No hay mantenimientos recientes</p>';
+    if (allMaintenances.length === 0) {
+        maintenancesList.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No hay mantenimientos registrados</p>';
         return;
     }
 
-    maintenancesList.innerHTML = recentMaintenances.slice(0, 3).map(maintenance => `
-        <div class="maintenance-card">
-            <div class="maintenance-header">
-                <div class="maintenance-title">${maintenance.boatName}</div>
-                <span class="maintenance-status ${getMaintenanceStatusClass(maintenance.status)}">
-                    ${maintenance.status}
-                </span>
+    maintenancesList.innerHTML = allMaintenances.map(maintenance => {
+        const displayDate = maintenance.performedDate ? maintenance.performedDate.split('T')[0] :
+                           maintenance.scheduledDate ? maintenance.scheduledDate.split('T')[0] : 'N/A';
+        const dateLabel = maintenance.performedDate ? 'Realizado' : 'Programado';
+
+        return `
+            <div class="maintenance-card">
+                <div class="maintenance-header">
+                    <div class="maintenance-title">${maintenance.boatName}</div>
+                    <span class="maintenance-status ${getMaintenanceStatusClass(maintenance.status)}">
+                        ${maintenance.status}
+                    </span>
+                </div>
+                <div class="maintenance-description">${maintenance.description}</div>
+                <div class="maintenance-details">
+                    <span>Tipo: ${maintenance.type}</span>
+                    <span>Prioridad: ${maintenance.priority}</span>
+                    <span>${dateLabel}: ${formatDate(displayDate)}</span>
+                    ${maintenance.cost ? `<span>Costo: ${formatPrice(maintenance.cost)}</span>` : ''}
+                </div>
             </div>
-            <div class="maintenance-description">${maintenance.description}</div>
-            <div class="maintenance-details">
-                <span>Tipo: ${maintenance.type}</span>
-                <span>Prioridad: ${maintenance.priority}</span>
-                <span>Fecha: ${formatDate(maintenance.scheduledDate ? maintenance.scheduledDate.split('T')[0] : 'N/A')}</span>
-                ${maintenance.cost ? `<span>Costo: ${formatPrice(maintenance.cost)}</span>` : ''}
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Helper functions

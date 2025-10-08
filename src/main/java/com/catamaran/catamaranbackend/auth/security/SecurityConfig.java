@@ -54,6 +54,8 @@ public class SecurityConfig  {
                              "/v3/api-docs.yaml"
                      ).permitAll();
                      http.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
+                     http.requestMatchers(HttpMethod.GET, "/api/v1/auth/{id}").hasAuthority("ROLE_PROPIETARIO");
+                     http.requestMatchers(HttpMethod.PUT, "/api/v1/auth/{id}").hasAuthority("ROLE_PROPIETARIO");
                      http.requestMatchers("/api/v1/auth/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/boat/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/payments/**").hasAuthority("ROLE_ADMIN");
@@ -96,3 +98,7 @@ public class SecurityConfig  {
     }
 
 }
+
+
+
+

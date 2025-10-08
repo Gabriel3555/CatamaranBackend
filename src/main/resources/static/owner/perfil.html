@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">Propietario</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="embarcaciones.html" class="nav-link">Embarcaciones</a>
+            <a href="mantenimientos.html" class="nav-link">Mantenimientos</a>
+            <a href="perfil.html" class="nav-link active">Perfil</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Mi Perfil</h2>
+                <p>Gestiona tu información personal</p>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Información Personal</h3>
+                    <p>Datos de tu cuenta de propietario</p>
+                </div>
+                <div class="profile-content">
+                    <div class="profile-avatar">
+                        <div class="avatar-circle">
+                            👤
+                        </div>
+                    </div>
+                    <div class="profile-info">
+                        <div class="info-row">
+                            <label>Nombre Completo:</label>
+                            <span id="fullName">Cargando...</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Nombre de Usuario:</label>
+                            <span id="username">Cargando...</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Email:</label>
+                            <span id="email">Cargando...</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Rol:</label>
+                            <span id="role">Propietario</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Fecha de Registro:</label>
+                            <span id="registrationDate">Cargando...</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Estado de Cuenta:</label>
+                            <span id="accountStatus" class="status-active">Activa</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-footer">
+                    <button onclick="editProfile()" class="primary-btn">
+                        Editar Perfil
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Statistics -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Estadísticas de Cuenta</h3>
+                    <p>Resumen de tu actividad en el sistema</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-icon">🛥️</div>
+                        <div class="stat-content">
+                            <h4 id="totalBoats">0</h4>
+                            <p>Embarcaciones Asignadas</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">🔧</div>
+                        <div class="stat-content">
+                            <h4 id="totalMaintenances">0</h4>
+                            <p>Total Mantenimientos</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📄</div>
+                        <div class="stat-content">
+                            <h4 id="totalDocuments">0</h4>
+                            <p>Documentos</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-content">
+                            <h4 id="totalDebt">$0</h4>
+                            <p>Deuda Total</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Configuración de Seguridad</h3>
+                    <p>Gestiona la seguridad de tu cuenta</p>
+                </div>
+                <div class="security-options">
+                    <button onclick="changePassword()" class="secondary-btn">
+                        Cambiar Contraseña
+                    </button>
+                    <button onclick="enable2FA()" class="secondary-btn">
+                        Configurar Autenticación de Dos Factores
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Perfil</h3>
+                <button onclick="closeModal()" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editFullName">Nombre Completo</label>
+                            <input type="text" id="editFullName" name="fullName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmail">Email</label>
+                            <input type="email" id="editEmail" name="email" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editPhone">Teléfono</label>
+                            <input type="tel" id="editPhone" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label for="editAddress">Dirección</label>
+                            <textarea id="editAddress" name="address" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn-secondary">Cancelar</button>
+                <button onclick="saveProfile()" class="btn-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="perfil.js"></script>
+</body>
+</html>

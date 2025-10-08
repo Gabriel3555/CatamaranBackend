@@ -136,22 +136,23 @@ public class OwnerController {
                 .collect(Collectors.toList());
         response.put("upcomingMaintenances", upcomingMaintenances);
 
-        // Recent maintenances (last 10, completed or performed)
-        List<Map<String, Object>> recentMaintenances = allMaintenances.stream()
-                .filter(m -> m.getStatus() == MaintananceStatus.COMPLETADO ||
-                           (m.getDatePerformed() != null && m.getDatePerformed().isBefore(now)))
+        // All maintenances for owner's boats
+        List<Map<String, Object>> allMaintenancesData = allMaintenances.stream()
                 .sorted((m1, m2) -> {
                     LocalDateTime date1 = m1.getDatePerformed() != null ? m1.getDatePerformed() : m1.getDateScheduled();
                     LocalDateTime date2 = m2.getDatePerformed() != null ? m2.getDatePerformed() : m2.getDateScheduled();
+                    if (date1 == null && date2 == null) return 0;
+                    if (date1 == null) return 1;
+                    if (date2 == null) return -1;
                     return date2.compareTo(date1); // Most recent first
                 })
-                .limit(10)
                 .map(m -> {
                     Map<String, Object> maintData = new HashMap<>();
                     maintData.put("id", m.getId());
                     maintData.put("boatName", m.getBoat().getName());
                     maintData.put("description", m.getDescription());
                     maintData.put("scheduledDate", m.getDateScheduled() != null ? m.getDateScheduled().toString() : null);
+                    maintData.put("performedDate", m.getDatePerformed() != null ? m.getDatePerformed().toString() : null);
                     maintData.put("priority", m.getPriority() != null ? m.getPriority().name() : null);
                     maintData.put("type", m.getType() != null ? m.getType().name() : null);
                     maintData.put("status", m.getStatus() != null ? m.getStatus().name() : null);
@@ -159,7 +160,7 @@ public class OwnerController {
                     return maintData;
                 })
                 .collect(Collectors.toList());
-        response.put("recentMaintenances", recentMaintenances);
+        response.put("allMaintenances", allMaintenancesData);
 
         return ResponseEntity.ok(response);
     }
