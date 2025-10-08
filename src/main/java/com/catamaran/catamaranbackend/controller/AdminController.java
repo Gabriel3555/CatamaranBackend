@@ -93,4 +93,31 @@ public class AdminController {
 
         return ResponseEntity.ok(maintenancesByStatus);
     }
+
+    @GetMapping("/owners")
+    public ResponseEntity<List<Map<String, Object>>> getUsersWithBoatCounts() {
+        List<UserEntity> propietarios = userRepository.findAll().stream()
+                .filter(user -> user.getRole() == Role.PROPIETARIO)
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> result = propietarios.stream()
+                .map(user -> {
+                    Map<String, Object> userMap = new HashMap<>();
+                    userMap.put("id", user.getId());
+                    userMap.put("email", user.getEmail());
+                    userMap.put("username", user.getUsername());
+                    userMap.put("fullName", user.getFullName());
+                    userMap.put("phoneNumber", user.getPhoneNumber());
+                    userMap.put("role", user.getRole());
+                    userMap.put("status", user.getStatus());
+                    userMap.put("uniqueId", user.getUniqueId());
+                    // Count boats for this user
+                    long boatCount = boatRepository.findByOwner(user).size();
+                    userMap.put("boatsCount", boatCount);
+                    return userMap;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
+    }
 }

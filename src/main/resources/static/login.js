@@ -103,15 +103,18 @@ async function handleLogin(event, userType) {
         const data = await response.json();
 
         if (response.ok && data.status) {
+            // Determine user type based on role from backend
+            const actualUserType = data.role === 'ADMIN' ? 'admin' : 'owner';
+
             // Store authentication data
-                localStorage.setItem('userType', userType);
+                localStorage.setItem('userType', actualUserType);
                 localStorage.setItem('username', username);
                 localStorage.setItem('userId', data.id);
                 localStorage.setItem('jwt', data.jwt);
                 localStorage.setItem('refreshToken', data.refreshToken);
 
-            // Redirect based on user type
-            if (userType === 'admin') {
+            // Redirect based on actual user type
+            if (actualUserType === 'admin') {
                 window.location.href = 'admin/dashboard.html';
             } else {
                 window.location.href = 'owner/dashboard.html';

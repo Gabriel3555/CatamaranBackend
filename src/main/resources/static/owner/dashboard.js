@@ -102,6 +102,7 @@ function updateOwnerDashboard(data) {
     document.getElementById('pendingMaintenances').textContent = metrics.pendingMaintenances;
     document.getElementById('completedMaintenances').textContent = metrics.completedMaintenances;
     document.getElementById('documentsCount').textContent = metrics.totalDocuments;
+    document.getElementById('pendingPaymentsCount').textContent = metrics.pendingPayments;
 
     // Update boats
     loadBoatsFromData(data.boats);
@@ -111,6 +112,9 @@ function updateOwnerDashboard(data) {
 
     // Update all maintenances
     loadAllMaintenancesFromData(data.allMaintenances);
+
+    // Update pending payments
+    loadPendingPaymentsFromData(data.pendingPayments);
 }
 
 // Load boats from API data
@@ -224,6 +228,35 @@ function loadAllMaintenancesFromData(allMaintenances) {
     }).join('');
 }
 
+// Load pending payments from API data
+function loadPendingPaymentsFromData(pendingPayments) {
+    const paymentsList = document.getElementById('pendingPaymentsList');
+
+    if (pendingPayments.length === 0) {
+        paymentsList.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No tienes pagos pendientes</p>';
+        return;
+    }
+
+    paymentsList.innerHTML = pendingPayments.map(payment => {
+        const paymentDate = new Date(payment.date);
+        const reasonText = getPaymentReasonText(payment.reason);
+
+        return `
+            <div class="payment-card">
+                <div class="payment-header">
+                    <div class="payment-title">${payment.boatName}</div>
+                    <span class="payment-status pending">Pendiente</span>
+                </div>
+                <div class="payment-description">${reasonText}</div>
+                <div class="payment-details">
+                    <span>💰 ${formatPrice(payment.amount)}</span>
+                    <span>📅 ${formatDate(paymentDate.toISOString().split('T')[0])}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 // Helper functions
 function formatBoatType(type) {
     const typeMap = {
@@ -269,6 +302,15 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('es-ES');
 }
 
+function getPaymentReasonText(reason) {
+    const reasonMap = {
+        'PAGO': 'Pago de embarcación',
+        'MANTENIMIENTO': 'Pago de mantenimiento',
+        'ADMIN': 'Pago administrativo'
+    };
+    return reasonMap[reason] || reason;
+}
+
 function getDaysUntil(dateString) {
     const today = new Date();
     const targetDate = new Date(dateString);
@@ -289,6 +331,10 @@ function viewBoatDetails(boatId) {
 
 function reportProblem() {
     alert('Función para reportar problemas - próximamente');
+}
+
+function viewAllPayments() {
+    window.location.href = 'pagos.html';
 }
 
 // Logout function
@@ -340,3 +386,4 @@ window.logout = logout;
 window.navigateTo = navigateTo;
 window.viewBoatDetails = viewBoatDetails;
 window.reportProblem = reportProblem;
+window.viewAllPayments = viewAllPayments;

@@ -162,6 +162,10 @@
     background: #f3e8ff;
 }
 
+.metric-icon.red {
+    background: #fef2f2;
+}
+
 .metric-content h3 {
     font-size: 2rem;
     font-weight: bold;
@@ -436,6 +440,102 @@
     align-items: center;
     font-size: 0.875rem;
     color: #6b7280;
+}
+
+/* Payments List */
+.payments-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.payment-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #f9fafb;
+}
+
+.payment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.payment-title {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.payment-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.payment-status.pending {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.payment-description {
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+.payment-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Payments Table Styles */
+.payments-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.payments-table thead {
+    background: #f9fafb;
+}
+
+.payments-table th {
+    padding: 12px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+    border-bottom: 1px solid #e5e7eb;
+    min-width: 120px;
+}
+
+.payments-table td {
+    padding: 12px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+    color: #374151;
+    word-wrap: break-word;
+}
+
+.payments-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.invoice-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.invoice-link:hover {
+    text-decoration: underline;
 }
 
 /* Actions Grid */

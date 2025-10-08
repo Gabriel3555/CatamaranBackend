@@ -76,6 +76,24 @@ public class OwnerController {
                 .count();
         metrics.put("completedMaintenances", completedMaintenances);
 
+        // Get all payments for owner's boats
+        List<PaymentEntity> allPayments = ownerBoats.stream()
+                .flatMap(boat -> boat.getPayments().stream())
+                .collect(Collectors.toList());
+
+        // Pending payments (POR_PAGAR)
+        long pendingPaymentsCount = allPayments.stream()
+                .filter(p -> p.getStatus() == PaymentStatus.POR_PAGAR)
+                .count();
+        metrics.put("pendingPayments", pendingPaymentsCount);
+
+        // Total pending payments amount
+        double totalPendingAmount = allPayments.stream()
+                .filter(p -> p.getStatus() == PaymentStatus.POR_PAGAR)
+                .mapToDouble(PaymentEntity::getMount)
+                .sum();
+        metrics.put("totalPendingAmount", totalPendingAmount);
+
         response.put("metrics", metrics);
 
         // Boats data
@@ -162,7 +180,60 @@ public class OwnerController {
                 .collect(Collectors.toList());
         response.put("allMaintenances", allMaintenancesData);
 
+        // Pending payments for owner's boats
+        List<Map<String, Object>> pendingPaymentsData = allPayments.stream()
+                .filter(p -> p.getStatus() == PaymentStatus.POR_PAGAR)
+                .sorted((p1, p2) -> p2.getDate().compareTo(p1.getDate())) // Most recent first
+                .map(payment -> {
+                    Map<String, Object> paymentData = new HashMap<>();
+                    paymentData.put("id", payment.getId());
+                    paymentData.put("boatName", payment.getBoat().getName());
+                    paymentData.put("amount", payment.getMount());
+                    paymentData.put("date", payment.getDate().toString());
+                    paymentData.put("reason", payment.getReason() != null ? payment.getReason().name() : null);
+                    paymentData.put("status", payment.getStatus() != null ? payment.getStatus().name() : null);
+                    paymentData.put("invoiceUrl", payment.getInvoice_url());
+                    return paymentData;
+                })
+                .collect(Collectors.toList());
+        response.put("pendingPayments", pendingPaymentsData);
+
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/payments/{userId}")
+    public ResponseEntity<List<Map<String, Object>>> getOwnerPayments(@PathVariable Long userId) {
+        // Find the user
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Get owner's boats
+        List<BoatEntity> ownerBoats = boatRepository.findByOwner(user);
+
+        // Get all payments for owner's boats
+        List<PaymentEntity> allPayments = ownerBoats.stream()
+                .flatMap(boat -> boat.getPayments().stream())
+                .sorted((p1, p2) -> p2.getDate().compareTo(p1.getDate())) // Most recent first
+                .collect(Collectors.toList());
+
+        // Convert to response format
+        List<Map<String, Object>> paymentsData = allPayments.stream()
+                .map(payment -> {
+                    Map<String, Object> paymentData = new HashMap<>();
+                    paymentData.put("id", payment.getId());
+                    paymentData.put("boatName", payment.getBoat().getName());
+                    paymentData.put("amount", payment.getMount());
+                    paymentData.put("date", payment.getDate().toString());
+                    paymentData.put("reason", payment.getReason() != null ? payment.getReason().name() : null);
+                    paymentData.put("status", payment.getStatus() != null ? payment.getStatus().name() : null);
+                    paymentData.put("invoiceUrl", payment.getInvoice_url());
+                    return paymentData;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(paymentsData);
     }
 
 }

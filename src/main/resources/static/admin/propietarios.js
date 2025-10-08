@@ -74,7 +74,7 @@ function formatBoatType(type) {
 // Load owners from API
 async function loadOwners() {
     try {
-        const response = await fetch('/api/v1/auth/with-boats', {
+        const response = await fetch('/api/v1/admin/owners', {
             headers: getAuthHeaders()
         });
 
@@ -95,31 +95,8 @@ async function loadOwners() {
 
 // Show fallback data when API fails
 function showFallbackData() {
-    owners = [
-        {
-            id: 1,
-            fullName: "Carlos Rodríguez",
-            email: "carlos@example.com",
-            phoneNumber: "+57 300 123 4567",
-            username: "carlosr",
-            status: true,
-            role: "PROPIETARIO",
-            boatsCount: 0,
-            createdAt: "2024-01-15"
-        },
-        {
-            id: 2,
-            fullName: "María González",
-            email: "maria@example.com",
-            phoneNumber: "+57 301 987 6543",
-            username: "mariag",
-            status: false,
-            role: "PROPIETARIO",
-            boatsCount: 0,
-            createdAt: "2024-02-20"
-        }
-    ];
-    filteredOwners = [...owners];
+    owners = [];
+    filteredOwners = [];
     updateMetrics();
     renderOwners();
 }

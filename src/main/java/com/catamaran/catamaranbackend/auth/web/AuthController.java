@@ -7,6 +7,7 @@ import com.catamaran.catamaranbackend.auth.application.service.UserDetailsServic
 import com.catamaran.catamaranbackend.auth.infrastructure.entity.UserEntity;
 import com.catamaran.catamaranbackend.auth.infrastructure.repository.UserRepositoryJpa;
 import com.catamaran.catamaranbackend.domain.Role;
+import com.catamaran.catamaranbackend.repository.BoatRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -37,6 +38,7 @@ import java.util.HashMap;
 public class AuthController {
 
     private final UserRepositoryJpa userRepository;
+    private final BoatRepository boatRepository;
     private final LoginUseCase loginUseCase;
     private final PasswordEncoder passwordEncoder;
     private final UserDetailsServiceImp  userDetailsService;
@@ -72,32 +74,6 @@ public class AuthController {
         return new PageImpl<>(propietarios, pageable, total);
     }
 
-    @GetMapping("/with-boats")
-    public ResponseEntity<List<Map<String, Object>>> getUsersWithBoatCounts() {
-        List<UserEntity> propietarios = userRepository.findAll().stream()
-                .filter(user -> user.getRole() == Role.PROPIETARIO)
-                .collect(Collectors.toList());
-
-        List<Map<String, Object>> result = propietarios.stream()
-                .map(user -> {
-                    Map<String, Object> userMap = new HashMap<>();
-                    userMap.put("id", user.getId());
-                    userMap.put("email", user.getEmail());
-                    userMap.put("username", user.getUsername());
-                    userMap.put("fullName", user.getFullName());
-                    userMap.put("phoneNumber", user.getPhoneNumber());
-                    userMap.put("role", user.getRole());
-                    userMap.put("status", user.getStatus());
-                    userMap.put("uniqueId", user.getUniqueId());
-                    // Count boats for this user
-                    long boatCount = user.getBoats() != null ? user.getBoats().size() : 0;
-                    userMap.put("boatsCount", boatCount);
-                    return userMap;
-                })
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(result);
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserEntity> getUser(@PathVariable Long id) {
