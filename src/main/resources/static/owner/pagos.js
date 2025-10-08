@@ -4,6 +4,7 @@
 let payments = [];
 let filteredPayments = [];
 let ownerBoats = [];
+let paginator = null;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -68,6 +69,9 @@ async function loadPayments() {
         if (paymentsResponse.ok) {
             payments = await paymentsResponse.json();
             filteredPayments = [...payments];
+            paginator = new Paginator(filteredPayments, 10);
+            window.paginator_payments = paginator;
+            window.renderWithPagination_payments = renderPayments;
         } else {
             console.error('Failed to load payments');
             payments = [];
@@ -158,6 +162,9 @@ function filterPayments() {
         return matchesSearch && matchesStatus && matchesReason && matchesBoat;
     });
 
+    if (paginator) {
+        paginator.updateItems(filteredPayments);
+    }
     renderPayments();
 }
 
@@ -165,7 +172,9 @@ function filterPayments() {
 function renderPayments() {
     paymentsTableBody.innerHTML = '';
 
-    if (filteredPayments.length === 0) {
+    const itemsToDisplay = paginator ? paginator.getCurrentPageItems() : filteredPayments;
+
+    if (itemsToDisplay.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="6" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -174,7 +183,7 @@ function renderPayments() {
         `;
         paymentsTableBody.appendChild(emptyRow);
     } else {
-        filteredPayments.forEach(payment => {
+        itemsToDisplay.forEach(payment => {
             const row = document.createElement('tr');
             const paymentDate = payment.date ?
                 new Date(payment.date).toLocaleString('es-ES') : 'N/A';
@@ -206,6 +215,12 @@ function renderPayments() {
     }
 
     document.getElementById('tableCount').textContent = `${filteredPayments.length} de ${payments.length} pagos`;
+    
+    // Render pagination
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (paginationContainer && paginator) {
+        paginationContainer.innerHTML = paginator.generatePaginationHTML('payments');
+    }
 }
 
 // Logout function

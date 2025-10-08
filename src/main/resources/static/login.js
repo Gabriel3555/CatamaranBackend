@@ -106,12 +106,22 @@ async function handleLogin(event, userType) {
             // Determine user type based on role from backend
             const actualUserType = data.role === 'ADMIN' ? 'admin' : 'owner';
 
+            // Validate that the user type matches the selected login type
+            if (userType !== actualUserType) {
+                if (userType === 'admin') {
+                    showError('Este usuario no tiene permisos de administrador. Por favor, usa el acceso de propietario.');
+                } else {
+                    showError('Este usuario es administrador. Por favor, usa el acceso administrativo.');
+                }
+                return;
+            }
+
             // Store authentication data
-                localStorage.setItem('userType', actualUserType);
-                localStorage.setItem('username', username);
-                localStorage.setItem('userId', data.id);
-                localStorage.setItem('jwt', data.jwt);
-                localStorage.setItem('refreshToken', data.refreshToken);
+            localStorage.setItem('userType', actualUserType);
+            localStorage.setItem('username', username);
+            localStorage.setItem('userId', data.id);
+            localStorage.setItem('jwt', data.jwt);
+            localStorage.setItem('refreshToken', data.refreshToken);
 
             // Redirect based on actual user type
             if (actualUserType === 'admin') {

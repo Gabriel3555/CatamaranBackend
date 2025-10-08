@@ -5,6 +5,7 @@ let boats = [];
 let filteredBoats = [];
 let currentEditingBoat = null;
 let owners = [];
+let paginator = null;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -63,6 +64,9 @@ async function loadBoats() {
             const data = await response.json();
             boats = data.content || data; // Handle paginated response
             filteredBoats = [...boats];
+            paginator = new Paginator(filteredBoats, 10);
+            window.paginator_inventory = paginator;
+            window.renderWithPagination_inventory = renderBoats;
             updateMetrics();
             renderBoats();
         } else {
@@ -136,6 +140,9 @@ function filterBoats() {
         return matchesSearch && matchesType && matchesStatus;
     });
 
+    if (paginator) {
+        paginator.updateItems(filteredBoats);
+    }
     renderBoats();
 }
 
@@ -143,7 +150,9 @@ function filterBoats() {
 function renderBoats() {
     inventoryTableBody.innerHTML = '';
 
-    if (filteredBoats.length === 0) {
+    const itemsToDisplay = paginator ? paginator.getCurrentPageItems() : filteredBoats;
+
+    if (itemsToDisplay.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="8" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -152,7 +161,7 @@ function renderBoats() {
         `;
         inventoryTableBody.appendChild(emptyRow);
     } else {
-        filteredBoats.forEach(boat => {
+        itemsToDisplay.forEach(boat => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${boat.name}</td>
@@ -176,6 +185,12 @@ function renderBoats() {
     }
 
     document.getElementById('tableCount').textContent = `${filteredBoats.length} de ${boats.length} embarcaciones`;
+    
+    // Render pagination
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (paginationContainer && paginator) {
+        paginationContainer.innerHTML = paginator.generatePaginationHTML('inventory');
+    }
 }
 
 // Format price in Colombian pesos

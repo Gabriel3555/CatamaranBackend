@@ -4,6 +4,7 @@
 let owners = [];
 let filteredOwners = [];
 let currentEditingOwner = null;
+let paginator = null;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -81,6 +82,9 @@ async function loadOwners() {
         if (response.ok) {
             owners = await response.json();
             filteredOwners = [...owners];
+            paginator = new Paginator(filteredOwners, 10);
+            window.paginator_owners = paginator;
+            window.renderWithPagination_owners = renderOwners;
             updateMetrics();
             renderOwners();
         } else {
@@ -131,6 +135,9 @@ function filterOwners() {
         return matchesSearch && matchesStatus && matchesRole;
     });
 
+    if (paginator) {
+        paginator.updateItems(filteredOwners);
+    }
     renderOwners();
 }
 
@@ -138,7 +145,9 @@ function filterOwners() {
 function renderOwners() {
     ownersTableBody.innerHTML = '';
 
-    if (filteredOwners.length === 0) {
+    const itemsToDisplay = paginator ? paginator.getCurrentPageItems() : filteredOwners;
+
+    if (itemsToDisplay.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="6" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -147,7 +156,7 @@ function renderOwners() {
         `;
         ownersTableBody.appendChild(emptyRow);
     } else {
-        filteredOwners.forEach(owner => {
+        itemsToDisplay.forEach(owner => {
             const row = document.createElement('tr');
             const statusText = owner.status ? 'Activo' : 'Inactivo';
             const statusClass = owner.status ? 'status-activo' : 'status-inactivo';
@@ -172,6 +181,12 @@ function renderOwners() {
     }
 
     document.getElementById('tableCount').textContent = `${filteredOwners.length} de ${owners.length} propietarios`;
+    
+    // Render pagination
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (paginationContainer && paginator) {
+        paginationContainer.innerHTML = paginator.generatePaginationHTML('owners');
+    }
 }
 
 // Open add owner modal

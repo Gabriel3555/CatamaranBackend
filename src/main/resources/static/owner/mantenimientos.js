@@ -3,6 +3,7 @@
 // State management
 let maintenances = [];
 let filteredMaintenances = [];
+let paginator = null;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -65,6 +66,9 @@ async function loadMaintenances() {
             const data = await response.json();
             maintenances = data.allMaintenances || [];
             filteredMaintenances = [...maintenances];
+            paginator = new Paginator(filteredMaintenances, 10);
+            window.paginator_maintenances = paginator;
+            window.renderWithPagination_maintenances = renderMaintenances;
             renderMaintenances();
         } else {
             console.error('Failed to load maintenances');
@@ -126,6 +130,9 @@ function filterMaintenances() {
         return matchesSearch && matchesStatus && matchesType;
     });
 
+    if (paginator) {
+        paginator.updateItems(filteredMaintenances);
+    }
     renderMaintenances();
 }
 
@@ -133,7 +140,9 @@ function filterMaintenances() {
 function renderMaintenances() {
     maintenanceTableBody.innerHTML = '';
 
-    if (filteredMaintenances.length === 0) {
+    const itemsToDisplay = paginator ? paginator.getCurrentPageItems() : filteredMaintenances;
+
+    if (itemsToDisplay.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="8" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -142,7 +151,7 @@ function renderMaintenances() {
         `;
         maintenanceTableBody.appendChild(emptyRow);
     } else {
-        filteredMaintenances.forEach(maintenance => {
+        itemsToDisplay.forEach(maintenance => {
             const row = document.createElement('tr');
             const scheduledDate = maintenance.scheduledDate ?
                 new Date(maintenance.scheduledDate).toLocaleString('es-ES') : 'N/A';
@@ -166,6 +175,12 @@ function renderMaintenances() {
     }
 
     document.getElementById('tableCount').textContent = `${filteredMaintenances.length} de ${maintenances.length} mantenimientos`;
+    
+    // Render pagination
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (paginationContainer && paginator) {
+        paginationContainer.innerHTML = paginator.generatePaginationHTML('maintenances');
+    }
 }
 
 // Logout function

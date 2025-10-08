@@ -48,6 +48,8 @@ public class SecurityConfig  {
                              "/login.css",
                              "/login.js",
                              "/logo-alianza.jpg",
+                             "/common-pagination.css",
+                             "/common-pagination.js",
                              "/logo-manta.jpg",
                              "/admin/**",
                              "/owner/**",
