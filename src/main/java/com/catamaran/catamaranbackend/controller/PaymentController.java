@@ -54,7 +54,7 @@ public class PaymentController {
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String status) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").ascending());
 
         Page<PaymentEntity> payments;
 

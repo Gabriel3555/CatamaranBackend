@@ -116,25 +116,46 @@ function updateOwnerDashboard(data) {
 // Load boats from API data
 function loadBoatsFromData(boats) {
     const boatsGrid = document.getElementById('boatsGrid');
-    const boatsToShow = boats.slice(0, 2); // Show only first 2 boats
 
-    if (boatsToShow.length === 0) {
+    if (boats.length === 0) {
         boatsGrid.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No tienes embarcaciones asignadas</p>';
         return;
     }
 
-    boatsGrid.innerHTML = boatsToShow.map(boat => `
-        <div class="boat-card">
+    boatsGrid.innerHTML = boats.map(boat => `
+        <div class="boat-card detailed">
             <div class="boat-header">
                 <div class="boat-title">${boat.name}</div>
                 <span class="boat-badge available">Asignada</span>
             </div>
-            <div class="boat-info">
-                <span>${formatBoatType(boat.type)} • ${boat.location}</span>
+            <div class="boat-info-grid">
+                <div class="info-item">
+                    <span class="info-label">Modelo:</span>
+                    <span class="info-value">${boat.model || 'N/A'}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Tipo:</span>
+                    <span class="info-value">${formatBoatType(boat.type)}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Ubicación:</span>
+                    <span class="info-value">${boat.location}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Precio:</span>
+                    <span class="info-value">${formatPrice(boat.price || 0)}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Deuda Mantenimiento:</span>
+                    <span class="info-value debt ${boat.maintenanceDebt > 0 ? 'debt-warning' : ''}">${formatPrice(boat.maintenanceDebt || 0)}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Deuda Barco:</span>
+                    <span class="info-value debt ${boat.boatDebt > 0 ? 'debt-warning' : ''}">${formatPrice(boat.boatDebt || 0)}</span>
+                </div>
             </div>
-            <div class="boat-details">
-                <span>Precio: ${formatPrice(boat.price || 0)}</span>
-                <button onclick="viewBoatDetails(${boat.id})" class="primary-btn" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Ver Detalles</button>
+            <div class="boat-actions">
+                <button onclick="viewBoatDetails(${boat.id})" class="primary-btn">Ver Detalles</button>
             </div>
         </div>
     `).join('');
@@ -252,11 +273,8 @@ function getDaysUntil(dateString) {
 
 // Navigation functions
 function navigateTo(page) {
-    // In a real application, this would navigate to different pages
-    alert(`Navegando a: ${page}`);
-
-    // You could implement actual navigation like:
-    // window.location.href = `${page}.html`;
+    // Navigate to the specified page
+    window.location.href = `${page}.html`;
 }
 
 function viewBoatDetails(boatId) {

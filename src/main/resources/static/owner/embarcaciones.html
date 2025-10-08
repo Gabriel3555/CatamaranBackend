@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Embarcaciones - MANTA</title>
+    <link rel="stylesheet" href="../login.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../logo-manta.jpg" alt="MANTA" class="logo">
+                <h1>SISTEMA DE GESTIÓN</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">Propietario</span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="embarcaciones.html" class="nav-link active">Embarcaciones</a>
+            <a href="mantenimientos.html" class="nav-link">Mantenimientos</a>
+            <a href="perfil.html" class="nav-link">Perfil</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <h2>Mis Embarcaciones</h2>
+                <p>Información completa de tus embarcaciones</p>
+            </div>
+
+            <!-- Boats Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Todas las Embarcaciones</h3>
+                    <p>Detalles completos de cada embarcación asignada</p>
+                </div>
+                <div class="boats-grid" id="boatsGrid">
+                    <!-- Boats will be loaded here -->
+                </div>
+                <div id="noBoatsMessage" style="text-align: center; color: #6b7280; padding: 20px; display: none;">
+                    No tienes embarcaciones asignadas
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="embarcaciones.js"></script>
+</body>
+</html>

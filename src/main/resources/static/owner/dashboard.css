@@ -219,6 +219,53 @@
     background: #f9fafb;
 }
 
+.boat-card.detailed {
+    padding: 1.5rem;
+}
+
+.boat-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.info-value {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.debt {
+    font-weight: 600;
+}
+
+.debt-warning {
+    color: #dc2626;
+}
+
+.boat-actions {
+    text-align: center;
+    margin-top: 1rem;
+}
+
 .boat-header {
     display: flex;
     justify-content: space-between;

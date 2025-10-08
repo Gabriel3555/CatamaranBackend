@@ -230,6 +230,15 @@
     background: #059669;
 }
 
+.documents-btn {
+    background: #8b5cf6;
+    color: white;
+}
+
+.documents-btn:hover {
+    background: #7c3aed;
+}
+
 /* Modal Styles */
 .modal {
     display: none;
@@ -410,4 +419,99 @@
     .form-row {
         grid-template-columns: 1fr;
     }
+}
+
+/* Documents Modal Styles */
+.large-modal {
+    max-width: 800px;
+    width: 95%;
+}
+
+.documents-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.upload-section h4,
+.documents-list h4 {
+    margin: 0 0 16px 0;
+    color: #111827;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.documents-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 16px;
+}
+
+.document-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+}
+
+.document-item:last-child {
+    margin-bottom: 0;
+}
+
+.document-info h5 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.document-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.document-link:hover {
+    text-decoration: underline;
+}
+
+.document-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-small:hover {
+    transform: translateY(-1px);
+}
+
+.btn-small.delete {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-small.delete:hover {
+    background: #dc2626;
+}
+
+.no-documents {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    padding: 40px;
 }

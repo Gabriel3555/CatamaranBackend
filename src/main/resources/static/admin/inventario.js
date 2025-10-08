@@ -166,6 +166,7 @@ function renderBoats() {
                     <div class="action-buttons">
                         <button class="action-btn edit-btn" onclick="editBoat(${boat.id})">Editar</button>
                         ${!boat.owner ? `<button class="action-btn assign-btn" onclick="assignOwner(${boat.id})">Asignar Propietario</button>` : ''}
+                        <button class="action-btn documents-btn" onclick="manageDocuments(${boat.id})">Documentos</button>
                         <button class="action-btn delete-btn" onclick="deleteBoat(${boat.id})">Eliminar</button>
                     </div>
                 </td>
@@ -527,6 +528,226 @@ function closeOwnerModal() {
     }
 }
 
+// Manage documents for a boat
+function manageDocuments(boatId) {
+    const boat = boats.find(b => b.id === boatId);
+    if (!boat) return;
+
+    // Create documents modal
+    const documentsModal = document.createElement('div');
+    documentsModal.id = 'documentsModal';
+    documentsModal.className = 'modal';
+    documentsModal.innerHTML = `
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3>Documentos de ${boat.name}</h3>
+                <button onclick="closeDocumentsModal()" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="documents-section">
+                    <div class="upload-section">
+                        <h4>Subir Nuevo Documento</h4>
+                        <div class="form-group">
+                            <label for="documentName">Nombre del Documento</label>
+                            <input type="text" id="documentName" placeholder="Ej: Licencia de navegación">
+                        </div>
+                        <div class="form-group">
+                            <label for="documentFile">Archivo</label>
+                            <input type="file" id="documentFile">
+                        </div>
+                        <button onclick="uploadDocument(${boatId})" class="btn-primary">Subir Documento</button>
+                    </div>
+                    <div class="documents-list">
+                        <h4>Documentos Existentes</h4>
+                        <div id="documentsList" class="documents-container">
+                            <!-- Documents will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDocumentsModal()" class="btn-secondary">Cerrar</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(documentsModal);
+    documentsModal.style.display = 'block';
+
+    // Load documents
+    loadDocuments(boatId);
+}
+
+// Close documents modal
+function closeDocumentsModal() {
+    const documentsModal = document.getElementById('documentsModal');
+    if (documentsModal) {
+        documentsModal.remove();
+    }
+}
+
+// Load documents for a boat
+async function loadDocuments(boatId) {
+    const documentsList = document.getElementById('documentsList');
+    if (!documentsList) return;
+
+    try {
+        const response = await fetch(`/api/v1/boat/${boatId}/documents`, {
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            const documents = await response.json();
+            renderDocuments(documents, boatId);
+        } else {
+            console.error('Failed to load documents');
+            documentsList.innerHTML = '<p class="no-documents">Error al cargar documentos</p>';
+        }
+    } catch (error) {
+        console.error('Error loading documents:', error);
+        documentsList.innerHTML = '<p class="no-documents">Error de conexión</p>';
+    }
+}
+
+// Render documents list
+function renderDocuments(documents, boatId) {
+    const documentsList = document.getElementById('documentsList');
+    if (!documentsList) return;
+
+    if (documents.length === 0) {
+        documentsList.innerHTML = '<p class="no-documents">No hay documentos para esta embarcación</p>';
+        return;
+    }
+
+    documentsList.innerHTML = documents.map(doc => `
+        <div class="document-item">
+            <div class="document-info">
+                <h5>${doc.name}</h5>
+            </div>
+            <div class="document-actions">
+                <button onclick="downloadDocument('${doc.url.replace('/documents/', '')}')" class="btn-small">Descargar</button>
+                <button onclick="editDocumentName(${boatId}, ${doc.id}, '${doc.name}')" class="btn-small">Editar</button>
+                <button onclick="deleteDocument(${boatId}, ${doc.id})" class="btn-small delete">Eliminar</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Upload document
+async function uploadDocument(boatId) {
+    const documentName = document.getElementById('documentName').value.trim();
+    const documentFile = document.getElementById('documentFile').files[0];
+
+    if (!documentName) {
+        alert('Por favor ingresa un nombre para el documento');
+        return;
+    }
+
+    if (!documentFile) {
+        alert('Por favor selecciona un archivo');
+        return;
+    }
+
+    // Check file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (documentFile.size > maxSize) {
+        alert('El archivo es demasiado grande. El tamaño máximo permitido es 10MB.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', documentFile);
+    formData.append('name', documentName);
+
+    try {
+        const response = await fetch(`/api/v1/boat/${boatId}/documents`, {
+            method: 'POST',
+            headers: {
+                'Authorization': getAuthHeaders()['Authorization']
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            // Clear form
+            document.getElementById('documentName').value = '';
+            document.getElementById('documentFile').value = '';
+            // Reload documents
+            loadDocuments(boatId);
+            alert('Documento subido exitosamente');
+        } else {
+            console.error('Failed to upload document');
+            alert('Error al subir el documento');
+        }
+    } catch (error) {
+        console.error('Error uploading document:', error);
+        alert('Error de conexión');
+    }
+}
+
+// Edit document name
+function editDocumentName(boatId, documentId, currentName) {
+    const newName = prompt('Nuevo nombre del documento:', currentName);
+    if (newName && newName.trim() !== currentName) {
+        updateDocumentName(boatId, documentId, newName.trim());
+    }
+}
+
+// Update document name
+async function updateDocumentName(boatId, documentId, newName) {
+    try {
+        const response = await fetch(`/api/v1/boat/${boatId}/documents/${documentId}?name=${encodeURIComponent(newName)}`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            loadDocuments(boatId);
+            alert('Nombre del documento actualizado');
+        } else {
+            console.error('Failed to update document name');
+            alert('Error al actualizar el nombre');
+        }
+    } catch (error) {
+        console.error('Error updating document name:', error);
+        alert('Error de conexión');
+    }
+}
+
+// Download document
+function downloadDocument(filename) {
+    const link = document.createElement('a');
+    link.href = `/api/v1/boat/documents/${filename}`;
+    link.download = filename; // This forces download
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Delete document
+async function deleteDocument(boatId, documentId) {
+    if (!confirm('¿Estás seguro de eliminar este documento?')) return;
+
+    try {
+        const response = await fetch(`/api/v1/boat/${boatId}/documents/${documentId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            loadDocuments(boatId);
+            alert('Documento eliminado exitosamente');
+        } else {
+            console.error('Failed to delete document');
+            alert('Error al eliminar el documento');
+        }
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Error de conexión');
+    }
+}
+
 // Close modal
 function closeModal() {
     boatModal.style.display = 'none';
@@ -554,6 +775,9 @@ window.onclick = function(event) {
     if (event.target === boatModal) {
         closeModal();
     }
+    if (event.target.id === 'documentsModal') {
+        closeDocumentsModal();
+    }
 };
 
 // Export functions for HTML onclick handlers
@@ -565,5 +789,11 @@ window.deleteBoat = deleteBoat;
 window.assignOwner = assignOwner;
 window.confirmAssignOwner = confirmAssignOwner;
 window.closeOwnerModal = closeOwnerModal;
+window.manageDocuments = manageDocuments;
+window.closeDocumentsModal = closeDocumentsModal;
+window.uploadDocument = uploadDocument;
+window.downloadDocument = downloadDocument;
+window.editDocumentName = editDocumentName;
+window.deleteDocument = deleteDocument;
 window.logout = logout;
 window.navigateTo = navigateTo;

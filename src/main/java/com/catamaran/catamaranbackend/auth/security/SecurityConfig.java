@@ -38,15 +38,29 @@ public class SecurityConfig  {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtTokenValidator(jwtUtils), BasicAuthenticationFilter.class)
                 .authorizeHttpRequests(http -> {
-                    http.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
-                    http.requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll();
-                    http.requestMatchers(
-                            "/swagger-ui/**",
-                            "/v3/api-docs/**",
-                            "/v3/api-docs.yaml"
-                    ).permitAll();
-                    http.anyRequest().permitAll();
-                });
+                     http.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
+                     http.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll();
+                     http.requestMatchers(HttpMethod.POST, "/api/v1/auth/create-owner").permitAll();
+                     http.requestMatchers(
+                             "/login.html",
+                             "/login.css",
+                             "/login.js",
+                             "/logo-alianza.jpg",
+                             "/logo-manta.jpg",
+                             "/admin/**",
+                             "/owner/**",
+                             "/swagger-ui/**",
+                             "/v3/api-docs/**",
+                             "/v3/api-docs.yaml"
+                     ).permitAll();
+                     http.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
+                     http.requestMatchers("/api/v1/auth/**").hasAuthority("ROLE_ADMIN");
+                     http.requestMatchers("/api/v1/boat/**").hasAuthority("ROLE_ADMIN");
+                     http.requestMatchers("/api/v1/payments/**").hasAuthority("ROLE_ADMIN");
+                     http.requestMatchers("/api/v1/maintenances/**").hasAuthority("ROLE_ADMIN");
+                     http.requestMatchers("/api/v1/owner/**").hasAuthority("ROLE_PROPIETARIO");
+                     http.anyRequest().authenticated();
+                 });
 
         return httpSecurity.build();
     }

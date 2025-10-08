@@ -193,6 +193,24 @@
     background: #dc2626;
 }
 
+.active-btn {
+    background: #10b981;
+    color: white;
+}
+
+.active-btn:hover {
+    background: #059669;
+}
+
+.inactive-btn {
+    background: #f59e0b;
+    color: white;
+}
+
+.inactive-btn:hover {
+    background: #d97706;
+}
+
 /* Modal Styles */
 .modal {
     display: none;

@@ -3,7 +3,6 @@
 // State management
 let payments = [];
 let filteredPayments = [];
-let users = [];
 let boats = [];
 let currentPage = 0;
 let totalPages = 0;
@@ -25,7 +24,6 @@ const saveBtn = document.getElementById('saveBtn');
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     setupEventListeners();
-    loadUsers();
     loadBoats();
     loadPayments();
 });
@@ -59,29 +57,6 @@ function getAuthHeaders() {
     };
 }
 
-// Load users for the dropdown
-async function loadUsers() {
-    try {
-        const response = await fetch('/api/v1/auth', {
-            headers: getAuthHeaders()
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            users = data.content || data;
-            populateUserSelect();
-        } else {
-            console.error('Failed to load users');
-            users = [];
-            populateUserSelect();
-        }
-    } catch (error) {
-        console.error('Error loading users:', error);
-        users = [];
-        populateUserSelect();
-    }
-}
-
 // Load boats for the dropdown
 async function loadBoats() {
     try {
@@ -105,19 +80,6 @@ async function loadBoats() {
     }
 }
 
-// Populate user select dropdown
-function populateUserSelect() {
-    const userSelect = document.getElementById('userSelect');
-    userSelect.innerHTML = '<option value="">Seleccionar propietario...</option>';
-
-    users.forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        option.textContent = `${user.fullName} (${user.email})`;
-        userSelect.appendChild(option);
-    });
-}
-
 // Populate boat select dropdown
 function populateBoatSelect() {
     const boatSelect = document.getElementById('boatSelect');
@@ -130,6 +92,7 @@ function populateBoatSelect() {
         boatSelect.appendChild(option);
     });
 }
+
 
 // Load payments from API
 async function loadPayments(page = 0, search = '', reason = 'all', month = 'all', status = 'POR_PAGAR') {
@@ -220,8 +183,7 @@ function formatPrice(price) {
 // Format payment reason for display
 function formatPaymentReason(reason) {
     const reasonMap = {
-        'PAGO': 'Pago',
-        'MANTENIMIENTO': 'Mantenimiento'
+        'ADMIN': 'Administrativo'
     };
     return reasonMap[reason] || reason;
 }
@@ -326,7 +288,8 @@ function openAddModal() {
     // Reset form
     paymentForm.reset();
 
-    // Set default date to now
+    // Set default values
+    document.getElementById('paymentReason').value = 'ADMIN';
     const now = new Date();
     const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
     document.getElementById('paymentDate').value = localDateTime.toISOString().slice(0, 16);
@@ -343,7 +306,7 @@ function viewPayment(id) {
     const boatInfo = boat ? `Embarcación: ${boat.name}` : 'Sin embarcación asignada';
 
     // For now, just show an alert with payment details
-    alert(`Pago #${payment.id}\n\n${boatInfo}\nMonto: ${formatPrice(payment.mount)}\nRazón: ${formatPaymentReason(payment.reason)}\nFecha: ${new Date(payment.date).toLocaleString('es-ES')}\nFactura: ${payment.invoice_url || 'Sin factura'}`);
+    alert(`Pago #${payment.id}\n\n${boatInfo}\nMonto: ${formatPrice(payment.mount)}\nRazón: ${formatPaymentReason(payment.reason)}\nFecha: ${new Date(payment.date).toLocaleString('es-ES')}\nFactura: ${payment.invoice_url || 'N/A'}`);
 }
 
 // Delete payment
@@ -365,14 +328,13 @@ async function savePayment(event) {
     }
 
     const formData = new FormData(paymentForm);
-    const userId = formData.get('userId');
     const boatId = formData.get('boatId');
 
     const paymentData = {
         mount: parseFloat(formData.get('amount')),
         date: new Date(formData.get('date')).toISOString(),
         reason: formData.get('reason'),
-        invoice_url: formData.get('invoice') || null,
+        status: 'POR_PAGAR',
         boat: { id: parseInt(boatId) }
     };
 

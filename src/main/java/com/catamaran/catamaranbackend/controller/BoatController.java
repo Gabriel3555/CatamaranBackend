@@ -15,8 +15,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.MediaType;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -105,16 +109,22 @@ public class BoatController {
         try {
             // Generar nombre único para el archivo
             String fileName = "boat_" + boatId + "_doc_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            String filePath = fileName;
+            String staticDir = "src/main/resources/static/documents/";
+            String filePath = staticDir + fileName;
 
-            // Guardar archivo en la raíz del proyecto
+            // Crear directorio si no existe
+            Path directoryPath = Paths.get(staticDir);
+            Files.createDirectories(directoryPath);
+
+            // Guardar archivo en el directorio static
             Path path = Paths.get(filePath);
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
 
-            // Crear el documento
+            // Crear el documento con URL relativa para acceso web
+            String webUrl = "/documents/" + fileName;
             BoatDocumentEntity document = BoatDocumentEntity.builder()
                     .name(documentName)
-                    .url(filePath)
+                    .url(webUrl)
                     .build();
 
             BoatDocumentEntity savedDocument = boatDocumentRepository.save(document);
@@ -193,8 +203,13 @@ public class BoatController {
         }
 
         try {
-            Path filePath = Paths.get(document.getUrl());
-            Files.deleteIfExists(filePath);
+            // Convertir URL web a ruta del sistema de archivos
+            String webUrl = document.getUrl();
+            String fileName = webUrl.replace("/documents/", "");
+            String filePath = "src/main/resources/static/documents/" + fileName;
+
+            Path path = Paths.get(filePath);
+            Files.deleteIfExists(path);
 
             boat.getDocuments().removeIf(doc -> doc.getId().equals(documentId));
             boatRepository.save(boat);
@@ -205,6 +220,32 @@ public class BoatController {
 
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/documents/{filename:.+}")
+    public ResponseEntity<Resource> getDocument(@PathVariable String filename) {
+        try {
+            Path filePath = Paths.get("src/main/resources/static/documents/").resolve(filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() && resource.isReadable()) {
+                // Determine content type
+                String contentType = "application/octet-stream";
+                try {
+                    contentType = Files.probeContentType(filePath);
+                } catch (IOException e) {
+                    // Use default content type
+                }
+
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (MalformedURLException e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
