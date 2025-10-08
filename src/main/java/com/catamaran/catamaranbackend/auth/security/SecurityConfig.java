@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -54,9 +55,10 @@ public class SecurityConfig  {
                              "/v3/api-docs/**",
                              "/v3/api-docs.yaml"
                      ).permitAll();
+                     http.requestMatchers("/api/v1/boat/documents/**").authenticated();
                      http.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
-                     http.requestMatchers(HttpMethod.GET, "/api/v1/auth/{id}").hasAuthority("ROLE_PROPIETARIO");
-                     http.requestMatchers(HttpMethod.PUT, "/api/v1/auth/{id}").hasAuthority("ROLE_PROPIETARIO");
+                     http.requestMatchers(HttpMethod.GET, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
+                     http.requestMatchers(HttpMethod.PUT, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
                      http.requestMatchers("/api/v1/auth/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/boat/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/payments/**").hasAuthority("ROLE_ADMIN");
@@ -87,7 +89,7 @@ public class SecurityConfig  {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(UserDetailsServiceImp userDetailsService){
+    public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;

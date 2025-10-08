@@ -71,14 +71,6 @@
                             <label>Rol:</label>
                             <span id="role">Propietario</span>
                         </div>
-                        <div class="info-row">
-                            <label>Fecha de Registro:</label>
-                            <span id="registrationDate">Cargando...</span>
-                        </div>
-                        <div class="info-row">
-                            <label>Estado de Cuenta:</label>
-                            <span id="accountStatus" class="status-active">Activa</span>
-                        </div>
                     </div>
                 </div>
                 <div class="section-footer">
@@ -136,9 +128,6 @@
                     <button onclick="changePassword()" class="secondary-btn">
                         Cambiar Contraseña
                     </button>
-                    <button onclick="enable2FA()" class="secondary-btn">
-                        Configurar Autenticación de Dos Factores
-                    </button>
                 </div>
             </div>
         </div>
@@ -178,6 +167,29 @@
             <div class="modal-footer">
                 <button onclick="closeModal()" class="btn-secondary">Cancelar</button>
                 <button onclick="saveProfile()" class="btn-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Cambiar Contraseña</h3>
+                <button onclick="closePasswordModal()" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="passwordForm">
+                    <div class="form-group">
+                        <label for="newPassword">Nueva Contraseña</label>
+                        <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                        <small style="color: #666; font-size: 12px;">Mínimo 6 caracteres</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closePasswordModal()" class="btn-secondary">Cancelar</button>
+                <button onclick="savePassword()" class="btn-primary">Cambiar Contraseña</button>
             </div>
         </div>
     </div>

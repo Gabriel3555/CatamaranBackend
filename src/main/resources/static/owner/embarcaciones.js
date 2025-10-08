@@ -111,7 +111,7 @@ function displayBoats(boats) {
                 </div>
             </div>
             <div class="boat-actions">
-                <button onclick="viewBoatDetails(${boat.id})" class="primary-btn">Ver Detalles</button>
+                <button onclick="viewBoatDocuments(${boat.id})" class="primary-btn">Ver Documentos</button>
             </div>
         </div>
     `).join('');
@@ -150,8 +150,9 @@ function formatPrice(price) {
 }
 
 // Navigation functions
-function viewBoatDetails(boatId) {
-    alert(`Ver detalles de embarcación ${boatId}`);
+function viewBoatDocuments(boatId) {
+    // Open modal to show documents
+    openDocumentsModal(boatId);
 }
 
 // Logout function
@@ -166,6 +167,169 @@ function logout() {
     window.location.href = '../login.html';
 }
 
+// Document management functions
+let currentBoatId = null;
+
+function openDocumentsModal(boatId) {
+    currentBoatId = boatId;
+    document.getElementById('documentsModal').style.display = 'block';
+    loadBoatDocuments(boatId);
+}
+
+function closeDocumentsModal() {
+    document.getElementById('documentsModal').style.display = 'none';
+    currentBoatId = null;
+    // Clear file input
+    document.getElementById('documentFile').value = '';
+    document.getElementById('documentName').value = '';
+}
+
+async function loadBoatDocuments(boatId) {
+    try {
+        const response = await fetch(`/api/v1/owner/boats/${boatId}/documents`, {
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            const documents = await response.json();
+            displayDocuments(documents);
+        } else {
+            showError('Error al cargar los documentos');
+        }
+    } catch (error) {
+        console.error('Error loading documents:', error);
+        showError('Error de conexión');
+    }
+}
+
+function displayDocuments(documents) {
+    const documentsList = document.getElementById('documentsList');
+
+    if (documents.length === 0) {
+        documentsList.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No hay documentos para esta embarcación</p>';
+        return;
+    }
+
+    documentsList.innerHTML = documents.map(doc => `
+        <div class="document-item">
+            <div class="document-info">
+                <span class="document-name">${doc.name}</span>
+                <div class="document-actions">
+                    <button onclick="viewDocument('${doc.url}')" class="view-btn">👁️ Ver</button>
+                    <button onclick="downloadDocument('${doc.url}', '${doc.name}')" class="download-btn">⬇️ Descargar</button>
+                    <button onclick="renameDocument(${doc.id}, '${doc.name}')" class="rename-btn">✏️ Renombrar</button>
+                    <button onclick="deleteDocument(${doc.id})" class="delete-btn">🗑️ Eliminar</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// File upload handling
+document.getElementById('documentFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && currentBoatId) {
+        const documentName = document.getElementById('documentName').value.trim() || file.name;
+        uploadDocument(currentBoatId, file, documentName);
+    }
+});
+
+async function uploadDocument(boatId, file, documentName) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', documentName);
+
+    try {
+        const response = await fetch(`/api/v1/owner/boats/${boatId}/documents`, {
+            method: 'POST',
+            headers: {
+                'Authorization': getAuthHeaders()['Authorization']
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            loadBoatDocuments(boatId);
+            document.getElementById('documentFile').value = '';
+            document.getElementById('documentName').value = '';
+        } else {
+            showError('Error al subir el documento');
+        }
+    } catch (error) {
+        console.error('Error uploading document:', error);
+        showError('Error de conexión');
+    }
+}
+
+function viewDocument(url) {
+    window.open(url, '_blank');
+}
+
+function downloadDocument(url, name) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function renameDocument(documentId, currentName) {
+    const newName = prompt('Nuevo nombre del documento:', currentName);
+    if (newName && newName.trim() && newName !== currentName) {
+        updateDocumentName(currentBoatId, documentId, newName.trim());
+    }
+}
+
+async function updateDocumentName(boatId, documentId, newName) {
+    try {
+        const response = await fetch(`/api/v1/owner/boats/${boatId}/documents/${documentId}?name=${encodeURIComponent(newName)}`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            loadBoatDocuments(boatId);
+        } else {
+            showError('Error al renombrar el documento');
+        }
+    } catch (error) {
+        console.error('Error updating document:', error);
+        showError('Error de conexión');
+    }
+}
+
+async function deleteDocument(documentId) {
+    if (!confirm('¿Está seguro de que desea eliminar este documento?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/owner/boats/${currentBoatId}/documents/${documentId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            loadBoatDocuments(currentBoatId);
+        } else {
+            showError('Error al eliminar el documento');
+        }
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        showError('Error de conexión');
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('documentsModal');
+    if (event.target === modal) {
+        closeDocumentsModal();
+    }
+}
+
 // Export functions for potential use in other scripts
 window.logout = logout;
-window.viewBoatDetails = viewBoatDetails;
+window.viewBoatDocuments = viewBoatDocuments;

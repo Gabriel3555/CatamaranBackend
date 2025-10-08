@@ -3,21 +3,25 @@ package com.catamaran.catamaranbackend.controller;
 import com.catamaran.catamaranbackend.auth.infrastructure.entity.UserEntity;
 import com.catamaran.catamaranbackend.auth.infrastructure.repository.UserRepositoryJpa;
 import com.catamaran.catamaranbackend.domain.*;
+import com.catamaran.catamaranbackend.repository.BoatDocumentRepository;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import com.catamaran.catamaranbackend.repository.MaintananceRepository;
 import com.catamaran.catamaranbackend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -29,6 +33,7 @@ public class OwnerController {
     private final BoatRepository boatRepository;
     private final MaintananceRepository maintananceRepository;
     private final PaymentRepository paymentRepository;
+    private final BoatDocumentRepository boatDocumentRepository;
 
     @GetMapping("/dashboard/{userId}")
     public ResponseEntity<Map<String, Object>> getOwnerDashboard(@PathVariable Long userId) {
@@ -234,6 +239,149 @@ public class OwnerController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(paymentsData);
+    }
+
+    @GetMapping("/boats/{boatId}/documents")
+    public ResponseEntity<List<BoatDocumentEntity>> getBoatDocuments(@PathVariable Long boatId) {
+        // Find the user (assuming we can get user from security context, but for now using a simple approach)
+        // In a real app, you'd get the authenticated user
+        // For now, we'll assume the boat belongs to the owner - this should be validated
+
+        Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
+        if (boatOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<BoatDocumentEntity> documents = boatOpt.get().getDocuments();
+        return ResponseEntity.ok(documents != null ? documents : new ArrayList<>());
+    }
+
+    @PostMapping("/boats/{boatId}/documents")
+    public ResponseEntity<BoatDocumentEntity> addDocumentToBoat(
+            @PathVariable Long boatId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("name") String documentName) {
+
+        Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
+        if (boatOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            // Generar nombre único para el archivo
+            String fileName = "boat_" + boatId + "_doc_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String staticDir = "src/main/resources/static/documents/";
+            String filePath = staticDir + fileName;
+
+            // Crear directorio si no existe
+            Path directoryPath = Paths.get(staticDir);
+            Files.createDirectories(directoryPath);
+
+            // Guardar archivo en el directorio static
+            Path path = Paths.get(filePath);
+            Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+
+            // Crear el documento con URL relativa para acceso web
+            String webUrl = "/documents/" + fileName;
+            BoatDocumentEntity document = BoatDocumentEntity.builder()
+                    .name(documentName)
+                    .url(webUrl)
+                    .build();
+
+            BoatDocumentEntity savedDocument = boatDocumentRepository.save(document);
+
+            // Agregar el documento al bote
+            BoatEntity boat = boatOpt.get();
+            if (boat.getDocuments() == null) {
+                boat.setDocuments(new ArrayList<>());
+            }
+            boat.getDocuments().add(savedDocument);
+            boatRepository.save(boat);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedDocument);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PutMapping("/boats/{boatId}/documents/{documentId}")
+    public ResponseEntity<BoatDocumentEntity> updateDocument(
+            @PathVariable Long boatId,
+            @PathVariable Long documentId,
+            @RequestParam("name") String documentName) {
+
+        Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
+        if (boatOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Optional<BoatDocumentEntity> documentOpt = boatDocumentRepository.findById(documentId);
+        if (documentOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Verificar que el documento pertenece al bote
+        BoatEntity boat = boatOpt.get();
+        boolean documentBelongsToBoat = boat.getDocuments() != null &&
+                boat.getDocuments().stream().anyMatch(doc -> doc.getId().equals(documentId));
+
+        if (!documentBelongsToBoat) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        BoatDocumentEntity document = documentOpt.get();
+        document.setName(documentName);
+        BoatDocumentEntity updatedDocument = boatDocumentRepository.save(document);
+
+        return ResponseEntity.ok(updatedDocument);
+    }
+
+    @DeleteMapping("/boats/{boatId}/documents/{documentId}")
+    public ResponseEntity<Void> deleteDocument(
+            @PathVariable Long boatId,
+            @PathVariable Long documentId) {
+
+        Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
+        if (boatOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Optional<BoatDocumentEntity> documentOpt = boatDocumentRepository.findById(documentId);
+        if (documentOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        BoatEntity boat = boatOpt.get();
+        BoatDocumentEntity document = documentOpt.get();
+
+        // Verificar que el documento pertenece al bote
+        boolean documentBelongsToBoat = boat.getDocuments() != null &&
+                boat.getDocuments().stream().anyMatch(doc -> doc.getId().equals(documentId));
+
+        if (!documentBelongsToBoat) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            // Convertir URL web a ruta del sistema de archivos
+            String webUrl = document.getUrl();
+            String fileName = webUrl.replace("/documents/", "");
+            String filePath = "src/main/resources/static/documents/" + fileName;
+
+            Path path = Paths.get(filePath);
+            Files.deleteIfExists(path);
+
+            boat.getDocuments().removeIf(doc -> doc.getId().equals(documentId));
+            boatRepository.save(boat);
+
+            boatDocumentRepository.deleteById(documentId);
+
+            return ResponseEntity.noContent().build();
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
 }

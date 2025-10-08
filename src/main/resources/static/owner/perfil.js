@@ -3,12 +3,16 @@
 // DOM elements - will be initialized after DOM load
 let editProfileModal;
 let profileForm;
+let changePasswordModal;
+let passwordForm;
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize DOM elements
     editProfileModal = document.getElementById('editProfileModal');
     profileForm = document.getElementById('profileForm');
+    changePasswordModal = document.getElementById('changePasswordModal');
+    passwordForm = document.getElementById('passwordForm');
 
     checkAuthentication();
     loadProfileData();
@@ -106,8 +110,6 @@ function displayUserProfile(userData) {
     document.getElementById('fullName').textContent = userData.fullName || userData.username || 'No especificado';
     document.getElementById('username').textContent = userData.username || 'No especificado';
     document.getElementById('email').textContent = userData.email || 'No especificado';
-    document.getElementById('registrationDate').textContent = userData.createdAt ?
-        new Date(userData.createdAt).toLocaleDateString('es-ES') : 'No disponible';
 
     // Set form values for editing
     document.getElementById('editFullName').value = userData.fullName || '';
@@ -210,15 +212,50 @@ async function saveProfile() {
     }
 }
 
-// Change password (placeholder)
+// Change password
 function changePassword() {
-    alert('Funcionalidad de cambio de contraseña próximamente disponible');
+    changePasswordModal.style.display = 'block';
 }
 
-// Enable 2FA (placeholder)
-function enable2FA() {
-    alert('Funcionalidad de autenticación de dos factores próximamente disponible');
+// Close password modal
+function closePasswordModal() {
+    changePasswordModal.style.display = 'none';
+    passwordForm.reset();
 }
+
+// Save new password
+async function savePassword() {
+    const newPassword = document.getElementById('newPassword').value.trim();
+
+    if (!newPassword || newPassword.length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres');
+        return;
+    }
+
+    try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`/api/v1/auth/${userId}/password`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'text/plain',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            },
+            body: newPassword
+        });
+
+        if (response.ok) {
+            closePasswordModal();
+            alert('Contraseña cambiada exitosamente');
+        } else {
+            const error = await response.text();
+            alert('Error al cambiar la contraseña: ' + error);
+        }
+    } catch (error) {
+        console.error('Error changing password:', error);
+        alert('Error al cambiar la contraseña. Inténtalo de nuevo.');
+    }
+}
+
 
 // Logout function
 function logout() {
@@ -239,6 +276,9 @@ window.onclick = function(event) {
     if (event.target === editProfileModal) {
         closeModal();
     }
+    if (event.target === changePasswordModal) {
+        closePasswordModal();
+    }
 };
 
 // Export functions for HTML onclick handlers
@@ -246,6 +286,7 @@ window.editProfile = editProfile;
 window.closeModal = closeModal;
 window.saveProfile = saveProfile;
 window.changePassword = changePassword;
-window.enable2FA = enable2FA;
+window.closePasswordModal = closePasswordModal;
+window.savePassword = savePassword;
 window.logout = logout;
 window.navigateTo = navigateTo;
