@@ -150,7 +150,7 @@ function navigateTo(page) {
         'propietarios': 'propietarios.html',
         'mantenimiento': 'mantenimiento.html',
         'pagos': 'pagos.html',
-        'reportes': 'pagos.html' // Redirect reports to payments for now
+        'reportes': 'reportes.html'
     };
 
     const targetPage = pageMap[page];

@@ -58,15 +58,17 @@ public class SecurityConfig  {
                              "/logo-manta.jpg",
                              "/admin/**",
                              "/owner/**",
+                             "/documents/**",
                              "/swagger-ui/**",
                              "/v3/api-docs/**",
                              "/v3/api-docs.yaml"
                      ).permitAll();
-                     
+                    http.requestMatchers(HttpMethod.GET, "/api/v1/boat/documents/**").permitAll();
                      // Authenticated endpoints
                      http.requestMatchers("/api/v1/boat/documents/**").authenticated();
                      
                      // Role-specific endpoints - specific rules before general ones
+                     http.requestMatchers("/api/v1/reports/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers(HttpMethod.GET, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
                      http.requestMatchers(HttpMethod.PUT, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");

@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +35,9 @@ public class OwnerController {
     private final MaintananceRepository maintananceRepository;
     private final PaymentRepository paymentRepository;
     private final BoatDocumentRepository boatDocumentRepository;
+
+    @Value("${app.upload.dir:src/main/resources/static/documents/}")
+    private String uploadDir;
 
     @GetMapping("/dashboard/{userId}")
     public ResponseEntity<Map<String, Object>> getOwnerDashboard(@PathVariable Long userId) {
@@ -270,18 +274,17 @@ public class OwnerController {
         try {
             // Generar nombre único para el archivo
             String fileName = "boat_" + boatId + "_doc_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            String staticDir = "src/main/resources/static/documents/";
-            String filePath = staticDir + fileName;
+            String filePath = uploadDir + fileName;
 
             // Crear directorio si no existe
-            Path directoryPath = Paths.get(staticDir);
+            Path directoryPath = Paths.get(uploadDir);
             Files.createDirectories(directoryPath);
 
-            // Guardar archivo en el directorio static
+            // Guardar archivo en el directorio
             Path path = Paths.get(filePath);
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
 
-            // Crear el documento con URL relativa para acceso web
+            // Crear el documento con URL para descarga
             String webUrl = "/documents/" + fileName;
             BoatDocumentEntity document = BoatDocumentEntity.builder()
                     .name(documentName)
@@ -364,10 +367,10 @@ public class OwnerController {
         }
 
         try {
-            // Convertir URL web a ruta del sistema de archivos
+            // Convertir URL a ruta del sistema de archivos
             String webUrl = document.getUrl();
-            String fileName = webUrl.replace("/documents/", "");
-            String filePath = "src/main/resources/static/documents/" + fileName;
+            String fileName = webUrl.replace("/api/v1/boat/documents/", "");
+            String filePath = uploadDir + fileName;
 
             Path path = Paths.get(filePath);
             Files.deleteIfExists(path);

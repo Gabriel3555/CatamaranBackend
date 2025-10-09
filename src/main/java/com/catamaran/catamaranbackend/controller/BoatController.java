@@ -16,10 +16,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.FileOutputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +42,9 @@ public class BoatController {
     private final UserRepositoryJpa userRepository;
     private final BoatDocumentRepository boatDocumentRepository;
     private final PaymentRepository paymentRepository;
+
+    @Value("${app.upload.dir:src/main/resources/static/documents/}")
+    private String uploadDir;
 
     @GetMapping("/{id}")
     public ResponseEntity<BoatEntity> getById(@PathVariable Long id) {
@@ -106,22 +112,31 @@ public class BoatController {
             return ResponseEntity.notFound().build();
         }
 
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
         try {
             // Generar nombre único para el archivo
             String fileName = "boat_" + boatId + "_doc_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            String staticDir = "src/main/resources/static/documents/";
-            String filePath = staticDir + fileName;
+            String filePath = uploadDir + fileName;
 
             // Crear directorio si no existe
-            Path directoryPath = Paths.get(staticDir);
+            Path directoryPath = Paths.get(uploadDir);
             Files.createDirectories(directoryPath);
 
-            // Guardar archivo en el directorio static
+            // Guardar archivo en el directorio
             Path path = Paths.get(filePath);
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
 
-            // Crear el documento con URL relativa para acceso web
-            String webUrl = "/documents/" + fileName;
+            // Verificar que el archivo se guardó correctamente
+            if (Files.size(path) == 0) {
+                Files.deleteIfExists(path);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+
+            // Crear el documento con URL para descarga
+            String webUrl = "/api/v1/boat/documents/" + fileName;
             BoatDocumentEntity document = BoatDocumentEntity.builder()
                     .name(documentName)
                     .url(webUrl)
@@ -203,10 +218,10 @@ public class BoatController {
         }
 
         try {
-            // Convertir URL web a ruta del sistema de archivos
+            // Convertir URL a ruta del sistema de archivos
             String webUrl = document.getUrl();
-            String fileName = webUrl.replace("/documents/", "");
-            String filePath = "src/main/resources/static/documents/" + fileName;
+            String fileName = webUrl.replace("/api/v1/boat/documents/", "");
+            String filePath = uploadDir + fileName;
 
             Path path = Paths.get(filePath);
             Files.deleteIfExists(path);
@@ -226,10 +241,9 @@ public class BoatController {
     @GetMapping("/documents/{filename:.+}")
     public ResponseEntity<Resource> getDocument(@PathVariable String filename) {
         try {
-            Path filePath = Paths.get("src/main/resources/static/documents/").resolve(filename).normalize();
-            Resource resource = new UrlResource(filePath.toUri());
+            Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
 
-            if (resource.exists() && resource.isReadable()) {
+            if (Files.exists(filePath) && Files.isReadable(filePath)) {
                 // Determine content type
                 String contentType = "application/octet-stream";
                 try {
@@ -238,14 +252,18 @@ public class BoatController {
                     // Use default content type
                 }
 
+                Resource resource = new InputStreamResource(Files.newInputStream(filePath));
+
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(contentType))
+                        .contentLength(Files.size(filePath))
+                        .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
                         .body(resource);
             } else {
                 return ResponseEntity.notFound().build();
             }
-        } catch (MalformedURLException e) {
-            return ResponseEntity.badRequest().build();
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

@@ -634,18 +634,23 @@ function renderDocuments(documents, boatId) {
         return;
     }
 
-    documentsList.innerHTML = documents.map(doc => `
-        <div class="document-item">
-            <div class="document-info">
-                <h5>${doc.name}</h5>
+    documentsList.innerHTML = documents.map(doc => {
+        // Extract just the filename from the URL
+        const filename = doc.url.split('/').pop();
+
+        return `
+            <div class="document-item">
+                <div class="document-info">
+                    <h5>${doc.name}</h5>
+                </div>
+                <div class="document-actions">
+                    <button onclick="downloadDocument('${filename}')" class="btn-small">Descargar</button>
+                    <button onclick="editDocumentName(${boatId}, ${doc.id}, '${doc.name}')" class="btn-small">Editar</button>
+                    <button onclick="deleteDocument(${boatId}, ${doc.id})" class="btn-small delete">Eliminar</button>
+                </div>
             </div>
-            <div class="document-actions">
-                <button onclick="downloadDocument('${doc.url.replace('/documents/', '')}')" class="btn-small">Descargar</button>
-                <button onclick="editDocumentName(${boatId}, ${doc.id}, '${doc.name}')" class="btn-small">Editar</button>
-                <button onclick="deleteDocument(${boatId}, ${doc.id})" class="btn-small delete">Eliminar</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Upload document
@@ -730,14 +735,33 @@ async function updateDocumentName(boatId, documentId, newName) {
 }
 
 // Download document
-function downloadDocument(filename) {
-    const link = document.createElement('a');
-    link.href = `/api/v1/boat/documents/${filename}`;
-    link.download = filename; // This forces download
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+async function downloadDocument(filename) {
+    try {
+        const response = await fetch(`/api/v1/boat/documents/${filename}`, {
+            headers: {
+                'Authorization': getAuthHeaders()['Authorization']
+            }
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } else {
+            console.error('Failed to download document');
+            alert('Error al descargar el documento');
+        }
+    } catch (error) {
+        console.error('Error downloading document:', error);
+        alert('Error de conexión');
+    }
 }
 
 // Delete document
