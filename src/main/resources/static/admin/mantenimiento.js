@@ -369,6 +369,7 @@ async function saveMaintenance(event) {
             } else {
                 console.error('Failed to update maintenance');
                 closeModal();
+                return;
             }
         } else {
             // Add new maintenance
@@ -384,10 +385,14 @@ async function saveMaintenance(event) {
             } else {
                 console.error('Failed to create maintenance');
                 closeModal();
+                return;
             }
         }
 
         filteredMaintenances = [...maintenances];
+        if (paginator) {
+            paginator.updateItems(filteredMaintenances);
+        }
         updateMetrics();
         renderMaintenances();
         closeModal();

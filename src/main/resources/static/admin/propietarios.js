@@ -325,6 +325,7 @@ async function saveOwner(event) {
 
             if (response.ok) {
                 const newOwner = await response.json();
+                newOwner.boatsCount = 0; // New owner has no boats initially
                 owners.push(newOwner);
             } else {
                 const errorData = await response.json().catch(() => ({}));

@@ -433,9 +433,8 @@ async function saveBoat(event) {
             }
         }
 
-        filteredBoats = [...boats];
-        updateMetrics();
-        renderBoats();
+        // Reload boats from server to ensure table is updated with latest data
+        loadBoats();
         closeModal();
     } catch (error) {
         console.error('Error saving boat:', error);
