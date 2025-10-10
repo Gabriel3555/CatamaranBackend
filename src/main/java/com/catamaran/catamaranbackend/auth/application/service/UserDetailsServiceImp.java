@@ -52,7 +52,7 @@ public class UserDetailsServiceImp implements LoginUseCase, AuthenticateUseCase,
 
         Long id = userEntity.getId();
 
-        Authentication authentication = this.authenticate(new UserPrincipal(id, username), password);
+        Authentication authentication = this.authenticate(new UserPrincipal(id, username, userEntity.getFullName()), password);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String jwtToken = jwtUtils.createToken(authentication);
@@ -100,7 +100,7 @@ public class UserDetailsServiceImp implements LoginUseCase, AuthenticateUseCase,
 
             GrantedAuthority role = new SimpleGrantedAuthority("ROLE_".concat(userEntity.getRole().name()));
 
-            UserPrincipal userPrincipal = new UserPrincipal(userEntity.getId(), username);
+            UserPrincipal userPrincipal = new UserPrincipal(userEntity.getId(), username, userEntity.getFullName());
             Authentication authentication = new UsernamePasswordAuthenticationToken(
                     userPrincipal, null, Set.of(role)
             );

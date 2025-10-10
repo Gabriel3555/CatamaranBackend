@@ -18,7 +18,7 @@
                 <h1>SISTEMA DE GESTIÓN</h1>
             </div>
             <div class="user-info">
-                <span>Administrador</span>
+                <span id="userFullName">Cargando...</span>
                 <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
             </div>
         </div>
@@ -190,7 +190,11 @@
             </div>
         </div>
     </div>
-
+    <script>
+        // Mostrar el nombre del usuario
+        document.getElementById('userFullName').textContent = localStorage.getItem('fullName') || 'Usuario';
+    </script>
+    <script src="common-admin.js"></script>
     <script src="../common-pagination.js"></script>
     <script src="propietarios.js"></script>
 </body>

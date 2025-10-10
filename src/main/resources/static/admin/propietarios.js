@@ -241,14 +241,7 @@ async function toggleOwnerStatus(id) {
         });
 
         if (response.ok) {
-            const updatedOwner = await response.json();
-            const index = owners.findIndex(o => o.id === id);
-            if (index !== -1) {
-                owners[index] = updatedOwner;
-            }
-            filteredOwners = [...owners];
-            updateMetrics();
-            renderOwners();
+            loadOwners(); // Reload to ensure table reflects latest server data
         } else {
             console.error('Failed to update owner status');
         }
@@ -263,15 +256,25 @@ async function toggleOwnerStatus(id) {
 }
 
 // Delete owner
-function deleteOwner(id) {
+async function deleteOwner(id) {
     if (!confirm('¿Estás seguro de eliminar este propietario? Esta acción no se puede deshacer.')) return;
 
-    // For now, just remove from local array
-    // In a real app, this would call the API
-    owners = owners.filter(owner => owner.id !== id);
-    filteredOwners = filteredOwners.filter(owner => owner.id !== id);
-    updateMetrics();
-    renderOwners();
+    try {
+        const response = await fetch(`/api/v1/auth/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            loadOwners(); // Reload to ensure table reflects latest server data
+        } else {
+            console.error('Failed to delete owner');
+            alert('Error al eliminar el propietario');
+        }
+    } catch (error) {
+        console.error('Error deleting owner:', error);
+        alert('Error de conexión al eliminar el propietario');
+    }
 }
 
 // Handle form submission
@@ -304,11 +307,7 @@ async function saveOwner(event) {
             });
 
             if (response.ok) {
-                const updatedOwner = await response.json();
-                const index = owners.findIndex(o => o.id === currentEditingOwner.id);
-                if (index !== -1) {
-                    owners[index] = updatedOwner;
-                }
+                loadOwners(); // Reload to ensure table reflects latest server data
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Failed to update owner:', errorData);
@@ -324,9 +323,7 @@ async function saveOwner(event) {
             });
 
             if (response.ok) {
-                const newOwner = await response.json();
-                newOwner.boatsCount = 0; // New owner has no boats initially
-                owners.push(newOwner);
+                loadOwners(); // Reload to ensure table reflects latest server data
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Failed to create owner:', errorData);
@@ -335,9 +332,6 @@ async function saveOwner(event) {
             }
         }
 
-        filteredOwners = [...owners];
-        updateMetrics();
-        renderOwners();
         closeModal();
     } catch (error) {
         console.error('Error saving owner:', error);

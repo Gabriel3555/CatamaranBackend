@@ -44,10 +44,11 @@ public class JwtTokenValidator extends OncePerRequestFilter {
                 DecodedJWT decodedJWT = jwtUtils.verifyToken(token);
                 Long userId = decodedJWT.getClaim("userId").asLong();
                 String username = jwtUtils.extractUsername(decodedJWT);
+                String fullName = jwtUtils.extractSpecificClaim(decodedJWT, "fullName").asString();
                 String roleString = jwtUtils.extractSpecificClaim(decodedJWT, "role").asString();
                 GrantedAuthority role = new SimpleGrantedAuthority(roleString);
 
-                SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(new UserPrincipal(userId, username), null, Set.of(role)));
+                SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(new UserPrincipal(userId, username, fullName), null, Set.of(role)));
             } catch (Exception e) {
                 // Invalid token, continue without authentication
             }

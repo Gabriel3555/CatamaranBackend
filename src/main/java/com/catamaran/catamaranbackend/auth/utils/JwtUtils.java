@@ -32,6 +32,7 @@ public class JwtUtils {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         String username = userPrincipal.username();
         Long id = userPrincipal.id();
+        String fullName = userPrincipal.fullName();
         String role = authentication.getAuthorities()
                 .stream()
                 .findFirst()
@@ -44,6 +45,7 @@ public class JwtUtils {
                 .withSubject(username)
                 .withJWTId(UUID.randomUUID().toString())
                 .withClaim("role", role)
+                .withClaim("fullName", fullName)
                 .withIssuer(userGenerator)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + (1000*60*60*24*7)))
@@ -54,6 +56,7 @@ public class JwtUtils {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         String username = userPrincipal.username();
         Long id = userPrincipal.id();
+        String fullName = userPrincipal.fullName();
         String role = authentication.getAuthorities()
                 .stream()
                 .findFirst()
@@ -65,6 +68,7 @@ public class JwtUtils {
                 .withSubject(username)
                 .withJWTId(UUID.randomUUID().toString())
                 .withClaim("role", role)
+                .withClaim("fullName", fullName)
                 .withIssuer(userGenerator)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + (1000*60*60*24*7)))

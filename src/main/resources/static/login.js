@@ -123,6 +123,12 @@ async function handleLogin(event, userType) {
             localStorage.setItem('jwt', data.jwt);
             localStorage.setItem('refreshToken', data.refreshToken);
 
+            // Extract and store fullName and role from JWT token
+            const payload = data.jwt.split('.')[1];
+            const decodedPayload = JSON.parse(atob(payload));
+            localStorage.setItem('fullName', decodedPayload.fullName);
+            localStorage.setItem('role', decodedPayload.role);
+
             // Redirect based on actual user type
             if (actualUserType === 'admin') {
                 window.location.href = 'admin/dashboard.html';
