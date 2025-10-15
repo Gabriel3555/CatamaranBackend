@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadBoats();
     loadPayments();
+
+    // Add cache busting parameter to avoid cached JS
+    console.log('Page loaded at:', new Date().toISOString());
 });
 
 // Authentication check
@@ -95,7 +98,7 @@ function populateBoatSelect() {
 
 
 // Load payments from API
-async function loadPayments(page = 0, search = '', reason = 'all', month = 'all', status = 'POR_PAGAR') {
+async function loadPayments(page = 0, search = '', reason = 'all', month = 'all', status = 'all') {
     try {
         let url = `/api/v1/payments?page=${page}&size=${pageSize}`;
 
@@ -104,6 +107,9 @@ async function loadPayments(page = 0, search = '', reason = 'all', month = 'all'
         if (reason !== 'all') url += `&reason=${encodeURIComponent(reason)}`;
         if (month !== 'all') url += `&month=${encodeURIComponent(month)}`;
         if (status !== 'all') url += `&status=${encodeURIComponent(status)}`;
+
+        console.log('Loading payments with URL:', url);
+        console.log('Filters - search:', search, 'reason:', reason, 'month:', month, 'status:', status);
 
         const response = await fetch(url, {
             headers: getAuthHeaders()
@@ -116,11 +122,18 @@ async function loadPayments(page = 0, search = '', reason = 'all', month = 'all'
             totalElements = data.totalElements || 0;
             currentPage = page;
             filteredPayments = [...payments]; // For client-side filtering if needed
+
+            console.log('Loaded payments:', payments.length, 'payments');
+            console.log('Total elements:', totalElements);
+
             updateMetrics();
             renderPayments();
             updatePaginationControls();
         } else {
-            console.error('Failed to load payments');
+            console.error('Failed to load payments - Status:', response.status);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+
             payments = [];
             filteredPayments = [];
             totalPages = 1;
@@ -496,6 +509,54 @@ window.onclick = function(event) {
     }
 };
 
+// Debug function to test filters
+window.testFilters = function() {
+    console.log('Testing filters...');
+    console.log('Current filter values:');
+    console.log('  searchInput:', searchInput.value);
+    console.log('  reasonFilter:', reasonFilter.value);
+    console.log('  monthFilter:', monthFilter.value);
+    console.log('  statusFilter:', statusFilter.value);
+
+    // Test loading with current filters
+    filterPayments();
+};
+
+// Clear cache and reload
+window.clearCacheAndReload = function() {
+    console.log('Clearing cache and reloading...');
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Force cache refresh by adding timestamp to URL
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('t', Date.now());
+    window.location.href = currentUrl.toString();
+};
+
+// Force refresh JavaScript files
+window.refreshJSFiles = function() {
+    console.log('Refreshing JavaScript files...');
+
+    // Remove existing scripts
+    const scripts = document.querySelectorAll('script[src*="pagos.js"], script[src*="common-admin.js"]');
+    scripts.forEach(script => {
+        script.remove();
+    });
+
+    // Reload scripts with cache busting
+    const timestamp = Date.now();
+    const pagosScript = document.createElement('script');
+    pagosScript.src = `pagos.js?t=${timestamp}`;
+    document.body.appendChild(pagosScript);
+
+    const commonScript = document.createElement('script');
+    commonScript.src = `common-admin.js?t=${timestamp}`;
+    document.body.appendChild(commonScript);
+
+    console.log('JavaScript files refreshed');
+};
+
 // Export functions for HTML onclick handlers
 window.savePayment = savePayment;
 window.openAddModal = openAddModal;
@@ -509,3 +570,6 @@ window.downloadReceipt = downloadReceipt;
 window.changePage = changePage;
 window.logout = logout;
 window.navigateTo = navigateTo;
+window.testFilters = testFilters;
+window.clearCacheAndReload = clearCacheAndReload;
+window.refreshJSFiles = refreshJSFiles;

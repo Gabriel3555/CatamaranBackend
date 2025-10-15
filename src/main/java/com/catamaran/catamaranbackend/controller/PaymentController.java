@@ -56,6 +56,13 @@ public class PaymentController {
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String status) {
 
+        System.out.println("PaymentController.getAll called with filters:");
+        System.out.println("  page: " + page + ", size: " + size);
+        System.out.println("  search: " + search);
+        System.out.println("  reason: " + reason);
+        System.out.println("  month: " + month);
+        System.out.println("  status: " + status);
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("date").ascending());
 
         Page<PaymentEntity> payments;
@@ -72,23 +79,45 @@ public class PaymentController {
             payments = paymentRepository.findByStatus(statusEnum, pageable);
         } else if (month != null && !month.equals("all")) {
             // Filter by month
+            // Month filter options:
+            // - "current": Current month (from 1st day to last day of current month)
+            // - "last3": Last 3 months (from 1st day of month, 3 months ago to now)
+            // - "last6": Last 6 months (from 1st day of month, 6 months ago to now)
             LocalDateTime startDate;
-            LocalDateTime endDate = LocalDateTime.now();
+            LocalDateTime endDate;
+
+            System.out.println("Filtering by month: " + month);
 
             switch (month) {
                 case "current":
-                    startDate = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+                    // Current month: from first day of current month to last day of current month
+                    LocalDateTime now = LocalDateTime.now();
+                    startDate = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+                    endDate = now.withDayOfMonth(now.toLocalDate().lengthOfMonth())
+                                  .withHour(23).withMinute(59).withSecond(59);
+                    System.out.println("Current month filter - startDate: " + startDate + ", endDate: " + endDate);
                     break;
                 case "last3":
-                    startDate = LocalDateTime.now().minusMonths(3);
+                    // Last 3 months: from 1st day of month, 3 months ago to now
+                    LocalDateTime nowForLast3 = LocalDateTime.now();
+                    startDate = nowForLast3.withDayOfMonth(1).minusMonths(3).withHour(0).withMinute(0).withSecond(0);
+                    endDate = nowForLast3.withHour(23).withMinute(59).withSecond(59);
+                    System.out.println("Last 3 months filter - startDate: " + startDate + ", endDate: " + endDate);
                     break;
                 case "last6":
-                    startDate = LocalDateTime.now().minusMonths(6);
+                    // Last 6 months: from 1st day of month, 6 months ago to now
+                    LocalDateTime nowForLast6 = LocalDateTime.now();
+                    startDate = nowForLast6.withDayOfMonth(1).minusMonths(6).withHour(0).withMinute(0).withSecond(0);
+                    endDate = nowForLast6.withHour(23).withMinute(59).withSecond(59);
+                    System.out.println("Last 6 months filter - startDate: " + startDate + ", endDate: " + endDate);
                     break;
                 default:
-                    startDate = LocalDateTime.now().minusYears(1); // fallback
+                    // Default to last year
+                    endDate = LocalDateTime.now();
+                    startDate = endDate.minusYears(1);
             }
             payments = paymentRepository.findByDateBetween(startDate, endDate, pageable);
+            System.out.println("Date filter returned " + payments.getTotalElements() + " payments");
         } else {
             payments = paymentRepository.findAll(pageable);
         }

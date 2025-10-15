@@ -106,9 +106,9 @@
                         <option value="last6">Últimos 6 meses</option>
                     </select>
                     <select id="statusFilter" class="filter-select">
+                        <option value="all">Todos</option>
                         <option value="POR_PAGAR">Por pagar</option>
                         <option value="PAGADO">Pagado</option>
-                        <option value="all">Todos</option>
                     </select>
                     <button onclick="openAddModal()" class="add-btn">
                         ➕ Nuevo Pago
@@ -229,8 +229,29 @@
     <script>
         // Mostrar el nombre del usuario
         document.getElementById('userFullName').textContent = localStorage.getItem('fullName') || 'Usuario';
+
+        // Función de debug disponible inmediatamente
+        window.testFilters = function() {
+            console.log('Testing filters...');
+            console.log('Current filter values:');
+            console.log('  searchInput:', document.getElementById('searchInput')?.value);
+            console.log('  reasonFilter:', document.getElementById('reasonFilter')?.value);
+            console.log('  monthFilter:', document.getElementById('monthFilter')?.value);
+            console.log('  statusFilter:', document.getElementById('statusFilter')?.value);
+
+            // Forzar recarga de datos
+            if (window.loadPayments) {
+                const searchTerm = document.getElementById('searchInput')?.value || '';
+                const reasonValue = document.getElementById('reasonFilter')?.value || 'all';
+                const monthValue = document.getElementById('monthFilter')?.value || 'all';
+                const statusValue = document.getElementById('statusFilter')?.value || 'all';
+                window.loadPayments(0, searchTerm, reasonValue, monthValue, statusValue);
+            } else {
+                console.error('loadPayments function not available yet');
+            }
+        };
     </script>
-    <script src="common-admin.js"></script>
-    <script src="pagos.js"></script>
+    <script src="common-admin.js?v=2"></script>
+    <script src="pagos.js?v=2"></script>
 </body>
 </html>
