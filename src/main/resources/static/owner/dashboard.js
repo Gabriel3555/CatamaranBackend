@@ -39,8 +39,14 @@ function loadDashboardData() {
 
     // Update welcome message
     const username = localStorage.getItem('username') || 'Propietario';
-    document.getElementById('userName').textContent = username;
-    document.getElementById('welcomeMessage').textContent = `Bienvenido de vuelta, ${username}`;
+    const userNameElement = document.getElementById('userName');
+    if (userNameElement) {
+        userNameElement.textContent = username;
+    }
+    const welcomeMessageElement = document.getElementById('welcomeMessage');
+    if (welcomeMessageElement) {
+        welcomeMessageElement.textContent = `Bienvenido de vuelta, ${username}`;
+    }
 
     // Load real data from API
     loadOwnerDashboard(userId);
@@ -93,8 +99,14 @@ function showDashboardError(message) {
 function updateOwnerDashboard(data) {
     // Update user info
     const user = data.user;
-    document.getElementById('userName').textContent = user.fullName;
-    document.getElementById('welcomeMessage').textContent = `Bienvenido de vuelta, ${user.fullName}`;
+    const userNameElement2 = document.getElementById('userName');
+    if (userNameElement2) {
+        userNameElement2.textContent = user.fullName;
+    }
+    const welcomeMessageElement2 = document.getElementById('welcomeMessage');
+    if (welcomeMessageElement2) {
+        welcomeMessageElement2.textContent = `Bienvenido de vuelta, ${user.fullName}`;
+    }
 
     // Update metrics
     const metrics = data.metrics;

@@ -30,7 +30,10 @@ function checkAuthentication() {
 
     // Update user name
     const username = localStorage.getItem('username') || 'Propietario';
-    document.getElementById('userName').textContent = username;
+    const userNameElement = document.getElementById('userName');
+    if (userNameElement) {
+        userNameElement.textContent = username;
+    }
 }
 
 // Setup event listeners

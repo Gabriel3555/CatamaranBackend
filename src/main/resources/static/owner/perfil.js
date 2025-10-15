@@ -30,7 +30,10 @@ function checkAuthentication() {
 
     // Update user name in header
     const username = localStorage.getItem('username') || 'Propietario';
-    document.getElementById('userName').textContent = username;
+    const userNameElement = document.getElementById('userName');
+    if (userNameElement) {
+        userNameElement.textContent = username;
+    }
 }
 
 // Get authentication headers
