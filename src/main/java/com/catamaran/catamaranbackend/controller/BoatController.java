@@ -308,8 +308,14 @@ public class BoatController {
         // Create payment records
         LocalDateTime currentDate = LocalDateTime.now();
         for (int i = 0; i < numberOfInstallments; i++) {
+            double currentInstallmentAmount = installmentAmount;
+            if (i == numberOfInstallments - 1) {
+                // Last installment: adjust to the remaining amount
+                double totalPaid = (numberOfInstallments - 1) * installmentAmount;
+                currentInstallmentAmount = boatPrice - totalPaid;
+            }
             PaymentEntity payment = PaymentEntity.builder()
-                    .mount(installmentAmount)
+                    .mount(currentInstallmentAmount)
                     .date(currentDate.plusMonths(i * frequency))
                     .reason(ReasonPayment.PAGO)
                     .status(PaymentStatus.POR_PAGAR)

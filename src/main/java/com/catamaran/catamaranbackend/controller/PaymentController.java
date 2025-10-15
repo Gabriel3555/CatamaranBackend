@@ -6,13 +6,12 @@ import com.catamaran.catamaranbackend.domain.ReasonPayment;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import com.catamaran.catamaranbackend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
@@ -37,6 +36,9 @@ public class PaymentController {
 
     private final PaymentRepository paymentRepository;
     private final BoatRepository boatRepository;
+
+    @Value("${file.upload-dir:uploads/receipts}")
+    private String uploadDir;
 
     @GetMapping("/{id}")
     public ResponseEntity<PaymentEntity> getById(@PathVariable Long id) {
@@ -131,7 +133,7 @@ public class PaymentController {
     }
 
     @PostMapping("/{id}/receipt")
-    public ResponseEntity<PaymentEntity> addReceipt(
+    public ResponseEntity<?> addReceipt(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file) {
 
@@ -140,31 +142,53 @@ public class PaymentController {
             return ResponseEntity.notFound().build();
         }
 
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("No se ha proporcionado ningún archivo");
+        }
+
         try {
-            String fileName = "receipt_" + id + "_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            String filePath = "receipts/" + fileName;
+            // Crear el directorio si no existe
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(uploadPath);
 
-            Path path = Paths.get(filePath);
-            Files.createDirectories(path.getParent()); // Ensure receipts directory exists
-            Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+            // Generar nombre único para el archivo
+            String originalFilename = file.getOriginalFilename();
+            String fileExtension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
 
+            String fileName = "receipt_" + id + "" + System.currentTimeMillis() + "" + originalFilename;
+
+            // Ruta completa del archivo
+            Path filePath = uploadPath.resolve(fileName);
+
+            // Guardar el archivo
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Actualizar el pago
             PaymentEntity payment = paymentOpt.get();
-            payment.setInvoice_url(filePath);
+            payment.setInvoice_url(fileName);
             payment.setStatus(PaymentStatus.PAGADO);
 
             if (payment.getReason() == ReasonPayment.PAGO) {
                 BoatEntity boat = payment.getBoat();
-                boat.setBalance(boat.getBalance() + payment.getMount());
-                boatRepository.save(boat);
+                if (boat != null) {
+                    boat.setBalance(boat.getBalance() + payment.getMount());
+                    boatRepository.save(boat);
+                }
             }
 
             PaymentEntity updatedPayment = paymentRepository.save(payment);
             return ResponseEntity.ok(updatedPayment);
 
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al guardar el archivo: " + e.getMessage());
         }
     }
+
 
     @GetMapping("/{id}/download-receipt")
     public ResponseEntity<Resource> downloadReceipt(@PathVariable Long id) {
@@ -174,24 +198,53 @@ public class PaymentController {
         }
 
         PaymentEntity payment = paymentOpt.get();
-        Path filePath = Paths.get(payment.getInvoice_url());
-        Resource resource = new FileSystemResource(filePath);
 
-        if (!resource.exists()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // Determine content type
-        String contentType = "application/octet-stream";
         try {
-            contentType = Files.probeContentType(filePath);
-        } catch (IOException e) {
-            // Use default
-        }
+            // Construir la ruta completa del archivo
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path filePath = uploadPath.resolve(payment.getInvoice_url()).normalize();
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header("Content-Disposition", "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
-                .body(resource);
+            // Verificar que el archivo está dentro del directorio permitido (seguridad)
+            if (!filePath.startsWith(uploadPath)) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            Resource resource = new FileSystemResource(filePath);
+
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Determinar content type
+            String contentType = "application/octet-stream";
+            try {
+                contentType = Files.probeContentType(filePath);
+                if (contentType == null) {
+                    contentType = "application/octet-stream";
+                }
+            } catch (IOException e) {
+                // Usar default
+            }
+
+            // Obtener el nombre original del archivo desde la URL o usar el nombre del archivo
+            String filename = payment.getInvoice_url();
+            if (filename.contains("_")) {
+                // Extraer el nombre original si está en el formato "receipt_ID_timestamp_originalname"
+                String[] parts = filename.split("_", 4);
+                if (parts.length >= 4) {
+                    filename = parts[3];
+                }
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + filename + "\"")
+                    .body(resource);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
