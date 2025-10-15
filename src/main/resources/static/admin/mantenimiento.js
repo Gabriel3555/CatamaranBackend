@@ -6,7 +6,10 @@ let filteredMaintenances = [];
 let boats = [];
 let currentEditingMaintenance = null;
 let currentPaymentId = null;
-let paginator = null;
+let currentPage = 0;
+let totalPages = 0;
+let totalElements = 0;
+let pageSize = 10;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -94,34 +97,61 @@ function populateBoatSelect() {
 }
 
 // Load maintenances from API
-async function loadMaintenances() {
+async function loadMaintenances(page = 0, search = '', status = 'all', type = 'all') {
     try {
-        const response = await fetch('/api/v1/maintenances?page=0&size=100', {
+        let url = `/api/v1/maintenances?page=${page}&size=${pageSize}`;
+
+        // Add filter parameters if provided
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status !== 'all') url += `&status=${encodeURIComponent(status)}`;
+        if (type !== 'all') url += `&type=${encodeURIComponent(type)}`;
+
+        console.log('Loading maintenances with URL:', url);
+        console.log('Filters - search:', search, 'status:', status, 'type:', type);
+
+        const response = await fetch(url, {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
             const data = await response.json();
             maintenances = data.content || [];
+            totalPages = data.totalPages || 1;
+            totalElements = data.totalElements || 0;
+            currentPage = page;
+            filteredMaintenances = [...maintenances]; // For client-side filtering if needed
+
+            console.log('Loaded maintenances:', maintenances.length, 'maintenances');
+            console.log('Total elements:', totalElements);
+
+            // Update filteredMaintenances for client-side operations if needed
             filteredMaintenances = [...maintenances];
-            paginator = new Paginator(filteredMaintenances, 10);
-            window.paginator_maintenances = paginator;
-            window.renderWithPagination_maintenances = renderMaintenances;
+
             updateMetrics();
             renderMaintenances();
+            updatePaginationControls();
         } else {
-            console.error('Failed to load maintenances');
+            console.error('Failed to load maintenances - Status:', response.status);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+
             maintenances = [];
             filteredMaintenances = [];
+            totalPages = 1;
+            totalElements = 0;
             updateMetrics();
             renderMaintenances();
+            updatePaginationControls();
         }
     } catch (error) {
         console.error('Error loading maintenances:', error);
         maintenances = [];
         filteredMaintenances = [];
+        totalPages = 1;
+        totalElements = 0;
         updateMetrics();
         renderMaintenances();
+        updatePaginationControls();
     }
 }
 
@@ -199,37 +229,53 @@ function downloadReceipt(paymentId) {
     document.body.removeChild(link);
 }
 
+// Update pagination controls
+function updatePaginationControls() {
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('currentPageInfo');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    // Update buttons
+    if (prevBtn) prevBtn.disabled = currentPage <= 0;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages - 1;
+
+    // Update page info
+    if (pageInfo) pageInfo.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+
+    // Update pagination info
+    if (paginationInfo) {
+        const startItem = currentPage * pageSize + 1;
+        const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
+        paginationInfo.textContent = `Mostrando ${startItem}-${endItem} de ${totalElements} mantenimientos`;
+    }
+}
+
+// Change page function
+function changePage(page) {
+    if (page < 0 || page >= totalPages) return;
+    const searchTerm = searchInput.value;
+    const statusValue = statusFilter.value;
+    const typeValue = typeFilter.value;
+    loadMaintenances(page, searchTerm, statusValue, typeValue);
+}
+
 // Filter maintenances based on search and filters
 function filterMaintenances() {
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = searchInput.value;
     const statusValue = statusFilter.value;
     const typeValue = typeFilter.value;
 
-    filteredMaintenances = maintenances.filter(maintenance => {
-        const matchesSearch = maintenance.description.toLowerCase().includes(searchTerm) ||
-                             maintenance.boat.name.toLowerCase().includes(searchTerm) ||
-                             maintenance.boat.model.toLowerCase().includes(searchTerm);
-
-        const matchesStatus = statusValue === 'all' || maintenance.status === statusValue;
-        const matchesType = typeValue === 'all' || maintenance.type === typeValue;
-
-        return matchesSearch && matchesStatus && matchesType;
-    });
-
-    if (paginator) {
-        paginator.updateItems(filteredMaintenances);
-    }
-    renderMaintenances();
+    // Reload data with filters applied server-side
+    loadMaintenances(0, searchTerm, statusValue, typeValue);
 }
 
 // Render maintenances in the table
 function renderMaintenances() {
-    console.log('Rendering maintenances:', filteredMaintenances);
+    console.log('Rendering maintenances:', maintenances);
     maintenanceTableBody.innerHTML = '';
 
-    const itemsToDisplay = paginator ? paginator.getCurrentPageItems() : filteredMaintenances;
-
-    if (itemsToDisplay.length === 0) {
+    if (maintenances.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -238,7 +284,7 @@ function renderMaintenances() {
         `;
         maintenanceTableBody.appendChild(emptyRow);
     } else {
-        itemsToDisplay.forEach(maintenance => {
+        maintenances.forEach(maintenance => {
             const row = document.createElement('tr');
             const scheduledDate = maintenance.dateScheduled ?
                 new Date(maintenance.dateScheduled).toLocaleString('es-ES') : 'N/A';
@@ -270,13 +316,10 @@ function renderMaintenances() {
         });
     }
 
-    document.getElementById('tableCount').textContent = `${filteredMaintenances.length} de ${maintenances.length} mantenimientos`;
-    
-    // Render pagination
-    const paginationContainer = document.getElementById('paginationContainer');
-    if (paginationContainer && paginator) {
-        paginationContainer.innerHTML = paginator.generatePaginationHTML('maintenances');
-    }
+    // Update table count with pagination info
+    const startItem = currentPage * pageSize + 1;
+    const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
+    document.getElementById('tableCount').textContent = `${maintenances.length} mantenimientos en esta página`;
 }
 
 // Open add maintenance modal
@@ -389,12 +432,11 @@ async function saveMaintenance(event) {
             }
         }
 
-        filteredMaintenances = [...maintenances];
-        if (paginator) {
-            paginator.updateItems(filteredMaintenances);
-        }
-        updateMetrics();
-        renderMaintenances();
+        // Reload the table to reflect changes
+        const searchTerm = searchInput.value;
+        const statusValue = statusFilter.value;
+        const typeValue = typeFilter.value;
+        loadMaintenances(currentPage, searchTerm, statusValue, typeValue);
         closeModal();
     } catch (error) {
         console.error('Error saving maintenance:', error);
@@ -484,7 +526,10 @@ async function uploadReceipt() {
             alert('Recibo subido exitosamente');
 
             // Reload the maintenances to reflect changes
-            loadMaintenances();
+            const searchTerm = searchInput.value;
+            const statusValue = statusFilter.value;
+            const typeValue = typeFilter.value;
+            loadMaintenances(currentPage, searchTerm, statusValue, typeValue);
             closeReceiptModal();
         } else {
             const error = response.statusText || 'Error desconocido';
@@ -519,5 +564,6 @@ window.openReceiptModal = openReceiptModal;
 window.closeReceiptModal = closeReceiptModal;
 window.uploadReceipt = uploadReceipt;
 window.downloadReceipt = downloadReceipt;
+window.changePage = changePage;
 window.logout = logout;
 window.navigateTo = navigateTo;

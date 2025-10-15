@@ -7,9 +7,14 @@ import com.catamaran.catamaranbackend.repository.BoatRepository;
 import com.catamaran.catamaranbackend.repository.MaintananceRepository;
 import com.catamaran.catamaranbackend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
@@ -95,12 +100,40 @@ public class AdminController {
     }
 
     @GetMapping("/owners")
-    public ResponseEntity<List<Map<String, Object>>> getUsersWithBoatCounts() {
-        List<UserEntity> propietarios = userRepository.findAll().stream()
+    public ResponseEntity<Page<Map<String, Object>>> getUsersWithBoatCounts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) {
+
+        System.out.println("AdminController.getUsersWithBoatCounts called with filters:");
+        System.out.println("  page: " + page + ", size: " + size);
+        System.out.println("  search: " + search);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("fullName").ascending());
+
+        // Get all owners first
+        List<UserEntity> allOwners = userRepository.findAll().stream()
                 .filter(user -> user.getRole() == Role.PROPIETARIO)
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> result = propietarios.stream()
+        // Apply search filter if provided
+        if (search != null && !search.trim().isEmpty()) {
+            System.out.println("Applying search filter: " + search.trim());
+            String searchTerm = search.trim().toLowerCase();
+            allOwners = allOwners.stream()
+                    .filter(user ->
+                        (user.getFullName() != null && user.getFullName().toLowerCase().contains(searchTerm)) ||
+                        (user.getEmail() != null && user.getEmail().toLowerCase().contains(searchTerm)) ||
+                        (user.getUsername() != null && user.getUsername().toLowerCase().contains(searchTerm))
+                    )
+                    .collect(Collectors.toList());
+        }
+
+        // Convert to Page
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), allOwners.size());
+
+        List<Map<String, Object>> pageContent = allOwners.subList(start, end).stream()
                 .map(user -> {
                     Map<String, Object> userMap = new HashMap<>();
                     userMap.put("id", user.getId());
@@ -118,6 +151,10 @@ public class AdminController {
                 })
                 .collect(Collectors.toList());
 
+        Page<Map<String, Object>> result = new org.springframework.data.domain.PageImpl<>(
+                pageContent, pageable, allOwners.size());
+
+        System.out.println("Returning " + result.getTotalElements() + " owners");
         return ResponseEntity.ok(result);
     }
 }

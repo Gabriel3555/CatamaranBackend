@@ -3,8 +3,11 @@
 // State management
 let owners = [];
 let filteredOwners = [];
+let currentPage = 0;
+let totalPages = 0;
+let totalElements = 0;
+let pageSize = 10;
 let currentEditingOwner = null;
-let paginator = null;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -22,6 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     setupEventListeners();
     loadOwners();
+
+    // Add cache busting parameter to avoid cached JS
+    console.log('Page loaded at:', new Date().toISOString());
 });
 
 // Authentication check
@@ -73,37 +79,61 @@ function formatBoatType(type) {
 }
 
 // Load owners from API
-async function loadOwners() {
+async function loadOwners(page = 0, search = '', status = 'all', role = 'all') {
     try {
-        const response = await fetch('/api/v1/admin/owners', {
+        let url = `/api/v1/admin/owners?page=${page}&size=${pageSize}`;
+
+        // Add filter parameters if provided
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status !== 'all') url += `&status=${encodeURIComponent(status)}`;
+        if (role !== 'all') url += `&role=${encodeURIComponent(role)}`;
+
+        console.log('Loading owners with URL:', url);
+        console.log('Filters - search:', search, 'status:', status, 'role:', role);
+
+        const response = await fetch(url, {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
-            owners = await response.json();
-            filteredOwners = [...owners];
-            paginator = new Paginator(filteredOwners, 10);
-            window.paginator_owners = paginator;
-            window.renderWithPagination_owners = renderOwners;
+            const data = await response.json();
+            owners = data.content || [];
+            totalPages = data.totalPages || 1;
+            totalElements = data.totalElements || 0;
+            currentPage = page;
+            filteredOwners = [...owners]; // For client-side filtering if needed
+
+            console.log('Loaded owners:', owners.length, 'owners');
+            console.log('Total elements:', totalElements);
+
             updateMetrics();
             renderOwners();
+            updatePaginationControls();
         } else {
-            console.error('Failed to load owners');
-            showFallbackData();
+            console.error('Failed to load owners - Status:', response.status);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+
+            owners = [];
+            filteredOwners = [];
+            totalPages = 1;
+            totalElements = 0;
+            updateMetrics();
+            renderOwners();
+            updatePaginationControls();
         }
     } catch (error) {
         console.error('Error loading owners:', error);
-        showFallbackData();
+        owners = [];
+        filteredOwners = [];
+        totalPages = 1;
+        totalElements = 0;
+        updateMetrics();
+        renderOwners();
+        updatePaginationControls();
     }
 }
 
-// Show fallback data when API fails
-function showFallbackData() {
-    owners = [];
-    filteredOwners = [];
-    updateMetrics();
-    renderOwners();
-}
 
 // Update metrics cards
 function updateMetrics() {
@@ -118,36 +148,53 @@ function updateMetrics() {
     document.getElementById('ownersWithBoats').textContent = ownersWithBoats;
 }
 
+// Update pagination controls
+function updatePaginationControls() {
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('currentPageInfo');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    // Check if elements exist before updating them
+    if (prevBtn && nextBtn && pageInfo && paginationInfo) {
+        // Update buttons
+        prevBtn.disabled = currentPage <= 0;
+        nextBtn.disabled = currentPage >= totalPages - 1;
+
+        // Update page info
+        pageInfo.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+
+        // Update pagination info
+        const startItem = currentPage * pageSize + 1;
+        const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
+        paginationInfo.textContent = `Mostrando ${startItem}-${endItem} de ${totalElements} propietarios`;
+    }
+}
+
+// Change page function
+function changePage(page) {
+    if (page < 0 || page >= totalPages) return;
+    const searchTerm = searchInput ? searchInput.value : '';
+    const statusValue = statusFilter ? statusFilter.value : 'all';
+    const roleValue = roleFilter ? roleFilter.value : 'all';
+    loadOwners(page, searchTerm, statusValue, roleValue);
+}
+
 // Filter owners based on search and filters
 function filterOwners() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const statusValue = statusFilter.value;
-    const roleValue = roleFilter.value;
+    const searchTerm = searchInput ? searchInput.value : '';
+    const statusValue = statusFilter ? statusFilter.value : 'all';
+    const roleValue = roleFilter ? roleFilter.value : 'all';
 
-    filteredOwners = owners.filter(owner => {
-        const matchesSearch = owner.fullName.toLowerCase().includes(searchTerm) ||
-                             owner.email.toLowerCase().includes(searchTerm) ||
-                             owner.username.toLowerCase().includes(searchTerm);
-
-        const matchesStatus = statusValue === 'all' || owner.status.toString() === statusValue;
-        const matchesRole = roleValue === 'all' || owner.role === roleValue;
-
-        return matchesSearch && matchesStatus && matchesRole;
-    });
-
-    if (paginator) {
-        paginator.updateItems(filteredOwners);
-    }
-    renderOwners();
+    // Reload data with filters applied server-side
+    loadOwners(0, searchTerm, statusValue, roleValue);
 }
 
 // Render owners in the table
 function renderOwners() {
     ownersTableBody.innerHTML = '';
 
-    const itemsToDisplay = paginator ? paginator.getCurrentPageItems() : filteredOwners;
-
-    if (itemsToDisplay.length === 0) {
+    if (filteredOwners.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="6" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -156,7 +203,7 @@ function renderOwners() {
         `;
         ownersTableBody.appendChild(emptyRow);
     } else {
-        itemsToDisplay.forEach(owner => {
+        filteredOwners.forEach(owner => {
             const row = document.createElement('tr');
             const statusText = owner.status ? 'Activo' : 'Inactivo';
             const statusClass = owner.status ? 'status-activo' : 'status-inactivo';
@@ -180,13 +227,7 @@ function renderOwners() {
         });
     }
 
-    document.getElementById('tableCount').textContent = `${filteredOwners.length} de ${owners.length} propietarios`;
-    
-    // Render pagination
-    const paginationContainer = document.getElementById('paginationContainer');
-    if (paginationContainer && paginator) {
-        paginationContainer.innerHTML = paginator.generatePaginationHTML('owners');
-    }
+    document.getElementById('tableCount').textContent = `${filteredOwners.length} propietarios en esta página`;
 }
 
 // Open add owner modal
@@ -457,5 +498,6 @@ window.closeBoatsModal = closeBoatsModal;
 window.editOwner = editOwner;
 window.toggleOwnerStatus = toggleOwnerStatus;
 window.deleteOwner = deleteOwner;
+window.changePage = changePage;
 window.logout = logout;
 window.navigateTo = navigateTo;

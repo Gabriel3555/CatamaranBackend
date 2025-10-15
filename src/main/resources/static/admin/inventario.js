@@ -5,7 +5,10 @@ let boats = [];
 let filteredBoats = [];
 let currentEditingBoat = null;
 let owners = [];
-let paginator = null;
+let currentPage = 0;
+let totalPages = 0;
+let totalElements = 0;
+let pageSize = 10;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -23,6 +26,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadBoats();
     loadOwners();
+
+    // Add cache busting parameter to avoid cached JS
+    console.log('Page loaded at:', new Date().toISOString());
 });
 
 // Authentication check
@@ -54,31 +60,54 @@ function getAuthHeaders() {
 }
 
 // Load boats from API
-async function loadBoats() {
+async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
     try {
-        const response = await fetch('/api/v1/boat?page=0&size=100', {
+        let url = `/api/v1/boat?page=${page}&size=${pageSize}`;
+
+        // Add filter parameters if provided
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (type !== 'all') url += `&type=${encodeURIComponent(type)}`;
+        if (status !== 'all') url += `&status=${encodeURIComponent(status)}`;
+
+        console.log('Loading boats with URL:', url);
+
+        const response = await fetch(url, {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
             const data = await response.json();
-            boats = data.content || data; // Handle paginated response
+            boats = data.content || [];
+            totalPages = data.totalPages || 1;
+            totalElements = data.totalElements || 0;
+            currentPage = page;
             filteredBoats = [...boats];
-            paginator = new Paginator(filteredBoats, 10);
-            window.paginator_inventory = paginator;
-            window.renderWithPagination_inventory = renderBoats;
+
+            console.log('Loaded boats:', boats.length, 'boats');
+            console.log('Total elements:', totalElements);
+
             updateMetrics();
             renderBoats();
+            updatePaginationControls();
         } else {
-            console.error('Failed to load boats');
+            console.error('Failed to load boats - Status:', response.status);
             boats = [];
             filteredBoats = [];
+            totalPages = 1;
+            totalElements = 0;
             updateMetrics();
             renderBoats();
+            updatePaginationControls();
         }
     } catch (error) {
         console.error('Error loading boats:', error);
-        showFallbackData();
+        boats = [];
+        filteredBoats = [];
+        totalPages = 1;
+        totalElements = 0;
+        updateMetrics();
+        renderBoats();
+        updatePaginationControls();
     }
 }
 
@@ -123,36 +152,19 @@ function updateMetrics() {
 
 // Filter boats based on search and filters
 function filterBoats() {
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = searchInput.value;
     const typeValue = typeFilter.value;
     const statusValue = statusFilter.value;
 
-    filteredBoats = boats.filter(boat => {
-        const matchesSearch = boat.name.toLowerCase().includes(searchTerm) ||
-                             boat.model.toLowerCase().includes(searchTerm) ||
-                             boat.location.toLowerCase().includes(searchTerm);
-
-        const matchesType = typeValue === 'all' || boat.type === typeValue;
-        const matchesStatus = statusValue === 'all' ||
-                             (statusValue === 'Disponible' && !boat.owner) ||
-                             (statusValue === 'Ocupado' && boat.owner);
-
-        return matchesSearch && matchesType && matchesStatus;
-    });
-
-    if (paginator) {
-        paginator.updateItems(filteredBoats);
-    }
-    renderBoats();
+    // Reload data with filters applied server-side
+    loadBoats(0, searchTerm, typeValue, statusValue);
 }
 
 // Render boats in the table
 function renderBoats() {
     inventoryTableBody.innerHTML = '';
 
-    const itemsToDisplay = paginator ? paginator.getCurrentPageItems() : filteredBoats;
-
-    if (itemsToDisplay.length === 0) {
+    if (filteredBoats.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="8" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -161,7 +173,7 @@ function renderBoats() {
         `;
         inventoryTableBody.appendChild(emptyRow);
     } else {
-        itemsToDisplay.forEach(boat => {
+        filteredBoats.forEach(boat => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${boat.name}</td>
@@ -184,13 +196,33 @@ function renderBoats() {
         });
     }
 
-    document.getElementById('tableCount').textContent = `${filteredBoats.length} de ${boats.length} embarcaciones`;
-    
-    // Render pagination
-    const paginationContainer = document.getElementById('paginationContainer');
-    if (paginationContainer && paginator) {
-        paginationContainer.innerHTML = paginator.generatePaginationHTML('inventory');
-    }
+    document.getElementById('tableCount').textContent = `${filteredBoats.length} embarcaciones en esta página`;
+}
+
+// Update pagination controls
+function updatePaginationControls() {
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('currentPageInfo');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    // Update buttons
+    prevBtn.disabled = currentPage <= 0;
+    nextBtn.disabled = currentPage >= totalPages - 1;
+
+    // Update page info
+    pageInfo.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+
+    // Update pagination info
+    const startItem = currentPage * pageSize + 1;
+    const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
+    paginationInfo.textContent = `Mostrando ${startItem}-${endItem} de ${totalElements} embarcaciones`;
+}
+
+// Change page function
+function changePage(page) {
+    if (page < 0 || page >= totalPages) return;
+    loadBoats(page);
 }
 
 // Format price in Colombian pesos
@@ -339,10 +371,10 @@ async function deleteBoat(id) {
         });
 
         if (response.ok) {
-            boats = boats.filter(boat => boat.id !== id);
-            filteredBoats = filteredBoats.filter(boat => boat.id !== id);
-            updateMetrics();
-            renderBoats();
+            const searchTerm = searchInput.value;
+            const typeValue = typeFilter.value;
+            const statusValue = statusFilter.value;
+            loadBoats(currentPage, searchTerm, typeValue, statusValue);
         } else {
             console.error('Failed to delete boat');
             // Fallback to local deletion
@@ -350,6 +382,7 @@ async function deleteBoat(id) {
             filteredBoats = filteredBoats.filter(boat => boat.id !== id);
             updateMetrics();
             renderBoats();
+            updatePaginationControls();
         }
     } catch (error) {
         console.error('Error deleting boat:', error);
@@ -358,6 +391,7 @@ async function deleteBoat(id) {
         filteredBoats = filteredBoats.filter(boat => boat.id !== id);
         updateMetrics();
         renderBoats();
+        updatePaginationControls();
     }
 }
 
@@ -433,8 +467,11 @@ async function saveBoat(event) {
             }
         }
 
-        // Reload boats from server to ensure table is updated with latest data
-        loadBoats();
+        // Reload current page to ensure table is updated with latest data
+        const searchTerm = searchInput.value;
+        const typeValue = typeFilter.value;
+        const statusValue = statusFilter.value;
+        loadBoats(currentPage, searchTerm, typeValue, statusValue);
         closeModal();
     } catch (error) {
         console.error('Error saving boat:', error);
@@ -494,13 +531,10 @@ async function confirmAssignOwner(boatId) {
         if (response.ok) {
             try {
                 const updatedBoat = await response.json();
-                const index = boats.findIndex(b => b.id === boatId);
-                if (index !== -1) {
-                    boats[index] = updatedBoat;
-                }
-                filteredBoats = [...boats];
-                updateMetrics();
-                renderBoats();
+                const searchTerm = searchInput.value;
+                const typeValue = typeFilter.value;
+                const statusValue = statusFilter.value;
+                loadBoats(currentPage, searchTerm, typeValue, statusValue);
                 closeOwnerModal();
                 alert('Propietario asignado exitosamente');
             } catch (jsonError) {
@@ -833,5 +867,6 @@ window.uploadDocument = uploadDocument;
 window.downloadDocument = downloadDocument;
 window.editDocumentName = editDocumentName;
 window.deleteDocument = deleteDocument;
+window.changePage = changePage;
 window.logout = logout;
 window.navigateTo = navigateTo;
