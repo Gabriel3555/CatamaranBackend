@@ -1,8 +1,6 @@
 package com.catamaran.catamaranbackend.controller;
 
-import com.catamaran.catamaranbackend.domain.PaymentEntity;
-import com.catamaran.catamaranbackend.domain.PaymentStatus;
-import com.catamaran.catamaranbackend.domain.ReasonPayment;
+import com.catamaran.catamaranbackend.domain.*;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import com.catamaran.catamaranbackend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,7 +17,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 
-import com.catamaran.catamaranbackend.domain.BoatEntity;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,28 +63,39 @@ public class PaymentController {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("date").ascending());
 
-        Page<PaymentEntity> payments;
+        // Build dynamic query with multiple filters using Specifications
+        org.springframework.data.jpa.domain.Specification<PaymentEntity> spec = Specification.where(null);
 
-        // Apply filters if provided
+        // Apply search filter if provided
         if (search != null && !search.trim().isEmpty()) {
-            // Search in owner name, email, or invoice_url
-            payments = paymentRepository.findBySearchTerm(search.trim(), pageable);
-        } else if (reason != null && !reason.equals("all")) {
+            System.out.println("Applying search filter: " + search.trim());
+            spec = spec.and(PaymentSpecification.hasSearchTerm(search.trim()));
+        }
+
+        // Apply reason filter if provided
+        if (reason != null && !reason.equals("all")) {
+            System.out.println("Applying reason filter: " + reason);
             ReasonPayment reasonEnum = ReasonPayment.valueOf(reason.toUpperCase());
-            payments = paymentRepository.findByReason(reasonEnum, pageable);
-        } else if (status != null && !status.equals("all")) {
+            spec = spec.and(PaymentSpecification.hasReason(reasonEnum));
+        }
+
+        // Apply status filter if provided
+        if (status != null && !status.equals("all")) {
+            System.out.println("Applying status filter: " + status);
             PaymentStatus statusEnum = PaymentStatus.valueOf(status.toUpperCase());
-            payments = paymentRepository.findByStatus(statusEnum, pageable);
-        } else if (month != null && !month.equals("all")) {
-            // Filter by month
+            spec = spec.and(PaymentSpecification.hasStatus(statusEnum));
+        }
+
+        // Apply month filter if provided
+        if (month != null && !month.equals("all")) {
+            System.out.println("Applying month filter: " + month);
+
             // Month filter options:
             // - "current": Current month (from 1st day to last day of current month)
             // - "last3": Last 3 months (from 1st day of month, 3 months ago to now)
             // - "last6": Last 6 months (from 1st day of month, 6 months ago to now)
             LocalDateTime startDate;
             LocalDateTime endDate;
-
-            System.out.println("Filtering by month: " + month);
 
             switch (month) {
                 case "current":
@@ -116,11 +125,13 @@ public class PaymentController {
                     endDate = LocalDateTime.now();
                     startDate = endDate.minusYears(1);
             }
-            payments = paymentRepository.findByDateBetween(startDate, endDate, pageable);
-            System.out.println("Date filter returned " + payments.getTotalElements() + " payments");
-        } else {
-            payments = paymentRepository.findAll(pageable);
+            spec = spec.and(PaymentSpecification.isBetweenDates(startDate, endDate));
+            System.out.println("Date filter applied");
         }
+
+        // Execute query with combined specifications
+        Page<PaymentEntity> payments = paymentRepository.findAll(spec, pageable);
+        System.out.println("Combined filters returned " + payments.getTotalElements() + " payments");
 
         return ResponseEntity.ok(payments);
     }

@@ -6,6 +6,7 @@ import com.catamaran.catamaranbackend.domain.ReasonPayment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
+public interface PaymentRepository extends JpaRepository<PaymentEntity, Long>, JpaSpecificationExecutor<PaymentEntity> {
     Page<PaymentEntity> findByBoatId(Long boatId, Pageable pageable);
 
     Page<PaymentEntity> findByReason(ReasonPayment reason, Pageable pageable);
