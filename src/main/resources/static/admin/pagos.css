@@ -373,12 +373,14 @@
 
 .pagination-info {
     color: #6b7280;
+    margin-left: 20px;
     font-size: 14px;
 }
 
 .pagination-controls {
     display: flex;
     align-items: center;
+    margin-right: 20px;
     gap: 16px;
 }
 

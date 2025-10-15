@@ -404,11 +404,13 @@
 
 .pagination-info {
     color: #6b7280;
+    margin-left: 20px;
     font-size: 14px;
 }
 
 .pagination-controls {
     display: flex;
+    margin-right: 20px;
     align-items: center;
     gap: 16px;
 }

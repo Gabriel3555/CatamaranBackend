@@ -109,8 +109,6 @@ public class AdminController {
         System.out.println("  page: " + page + ", size: " + size);
         System.out.println("  search: " + search);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("fullName").ascending());
-
         // Get all owners first
         List<UserEntity> allOwners = userRepository.findAll().stream()
                 .filter(user -> user.getRole() == Role.PROPIETARIO)
@@ -128,6 +126,12 @@ public class AdminController {
                     )
                     .collect(Collectors.toList());
         }
+
+        // Sort owners by ID in descending order (highest to lowest)
+        allOwners.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+
+        // Create pageable for pagination
+        Pageable pageable = PageRequest.of(page, size);
 
         // Convert to Page
         int start = (int) pageable.getOffset();
