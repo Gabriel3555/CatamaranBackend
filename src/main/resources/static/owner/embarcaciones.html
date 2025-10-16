@@ -73,14 +73,18 @@
             </div>
 
             <!-- Pagination -->
-            <div id="paginationContainer" class="pagination-container" style="display: none;">
+            <div class="pagination-container">
                 <div class="pagination-info">
-                    <span id="paginationInfo">Mostrando 0-0 de 0 embarcaciones</span>
+                    <span id="paginationInfo">Mostrando 0 de 0 embarcaciones</span>
                 </div>
                 <div class="pagination-controls">
-                    <button id="prevPageBtn" class="pagination-btn" disabled>Anterior</button>
+                    <button id="prevPageBtn" onclick="changePage(currentPage - 1)" class="pagination-btn" disabled>
+                        ← Anterior
+                    </button>
                     <span id="currentPageInfo" class="page-info">Página 1</span>
-                    <button id="nextPageBtn" class="pagination-btn" disabled>Siguiente</button>
+                    <button id="nextPageBtn" onclick="changePage(currentPage + 1)" class="pagination-btn" disabled>
+                        Siguiente →
+                    </button>
                 </div>
             </div>
         </div>

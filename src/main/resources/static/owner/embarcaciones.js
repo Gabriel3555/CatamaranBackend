@@ -1,8 +1,8 @@
 // Owner Embarcaciones JavaScript
 
-// Pagination state
-let boatsPaginator = null;
-let allBoats = [];
+// State management
+let boats = [];
+let filteredBoats = [];
 let currentPage = 0;
 let totalPages = 0;
 let totalElements = 0;
@@ -61,8 +61,7 @@ async function loadOwnerBoats(userId, page = 0) {
     try {
         console.log('Loading boats for user:', userId, 'page:', page);
 
-        // Try new paginated endpoint first
-        let response = await fetch(`/api/v1/owner/boats/${userId}?page=${page}&size=${pageSize}`, {
+        const response = await fetch(`/api/v1/owner/boats/${userId}?page=${page}&size=${pageSize}`, {
             method: 'GET',
             headers: getAuthHeaders()
         });
@@ -73,46 +72,43 @@ async function loadOwnerBoats(userId, page = 0) {
             const data = await response.json();
             console.log('Response data:', data);
 
-            allBoats = data.content || [];
+            boats = data.content || [];
             totalPages = data.totalPages || 1;
             totalElements = data.totalElements || 0;
             currentPage = page;
+            filteredBoats = [...boats];
 
-            console.log('Loaded boats:', allBoats.length, 'boats');
+            console.log('Loaded boats:', boats.length, 'boats');
             console.log('Total elements:', totalElements);
+
+            displayBoats(boats);
+            updatePaginationControls();
         } else if (response.status === 404) {
             // Fallback to dashboard endpoint if new endpoint doesn't exist
             console.log('New endpoint not found, trying fallback...');
-            response = await fetch(`/api/v1/owner/dashboard/${userId}`, {
+            const fallbackResponse = await fetch(`/api/v1/owner/dashboard/${userId}`, {
                 method: 'GET',
                 headers: getAuthHeaders()
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                allBoats = data.boats || [];
+            if (fallbackResponse.ok) {
+                const data = await fallbackResponse.json();
+                boats = data.boats || [];
                 totalPages = 1;
-                totalElements = allBoats.length;
+                totalElements = boats.length;
                 currentPage = 0;
+                filteredBoats = [...boats];
 
-                console.log('Loaded boats from fallback:', allBoats.length, 'boats');
+                console.log('Loaded boats from fallback:', boats.length, 'boats');
+
+                displayBoats(boats);
+                updatePaginationControls();
             } else {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${fallbackResponse.status}`);
             }
         } else {
             throw new Error(`HTTP ${response.status}`);
         }
-
-        // Initialize or update paginator
-        if (!boatsPaginator) {
-            boatsPaginator = new Paginator(allBoats, pageSize);
-        } else {
-            boatsPaginator.updateItems(allBoats);
-            boatsPaginator.goToPage(page + 1); // Paginator is 1-indexed
-        }
-
-        displayBoats(boatsPaginator.getCurrentPageItems());
-        updatePaginationControls();
 
     } catch (error) {
         console.error('Error loading boats:', error);
@@ -135,11 +131,11 @@ async function loadOwnerBoats(userId, page = 0) {
 }
 
 // Display boats in table format
-function displayBoats(boats) {
+function displayBoats() {
     const boatsTableBody = document.getElementById('boatsTableBody');
     const noBoatsMessage = document.getElementById('noBoatsMessage');
 
-    if (boats.length === 0) {
+    if (filteredBoats.length === 0) {
         boatsTableBody.innerHTML = '';
         noBoatsMessage.style.display = 'block';
         return;
@@ -147,7 +143,7 @@ function displayBoats(boats) {
 
     noBoatsMessage.style.display = 'none';
 
-    boatsTableBody.innerHTML = boats.map(boat => `
+    boatsTableBody.innerHTML = filteredBoats.map(boat => `
         <tr>
             <td>${boat.name}</td>
             <td>${formatBoatType(boat.type)}</td>
@@ -165,7 +161,7 @@ function displayBoats(boats) {
     `).join('');
 
     // Update table count
-    document.getElementById('tableCount').textContent = `${boats.length} embarcaciones en esta página`;
+    document.getElementById('tableCount').textContent = `${filteredBoats.length} embarcaciones en esta página`;
 }
 
 // Show error message
@@ -384,27 +380,19 @@ async function deleteDocument(documentId) {
     }
 }
 
-// Pagination functions
+// Update pagination controls
 function updatePaginationControls() {
-    const paginationContainer = document.getElementById('paginationContainer');
-    const paginationInfo = document.getElementById('paginationInfo');
     const prevBtn = document.getElementById('prevPageBtn');
     const nextBtn = document.getElementById('nextPageBtn');
-    const currentPageInfo = document.getElementById('currentPageInfo');
-
-    if (totalElements === 0) {
-        paginationContainer.style.display = 'none';
-        return;
-    }
-
-    paginationContainer.style.display = 'flex';
+    const pageInfo = document.getElementById('currentPageInfo');
+    const paginationInfo = document.getElementById('paginationInfo');
 
     // Update buttons
     prevBtn.disabled = currentPage <= 0;
     nextBtn.disabled = currentPage >= totalPages - 1;
 
     // Update page info
-    currentPageInfo.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+    pageInfo.textContent = `Página ${currentPage + 1} de ${totalPages}`;
 
     // Update pagination info
     const startItem = currentPage * pageSize + 1;
@@ -412,6 +400,7 @@ function updatePaginationControls() {
     paginationInfo.textContent = `Mostrando ${startItem}-${endItem} de ${totalElements} embarcaciones`;
 }
 
+// Change page function
 function changePage(page) {
     if (page < 0 || page >= totalPages) return;
 
@@ -421,13 +410,8 @@ function changePage(page) {
     }
 }
 
-function renderWithPagination() {
-    if (boatsPaginator) {
-        const currentPageItems = boatsPaginator.getCurrentPageItems();
-        displayBoats(currentPageItems);
-        updatePaginationControls();
-    }
-}
+// Global reference for HTML onclick handlers
+window.changePage = changePage;
 
 // Close modal when clicking outside
 window.onclick = function(event) {
