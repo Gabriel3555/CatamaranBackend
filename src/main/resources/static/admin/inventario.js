@@ -364,6 +364,7 @@ async function assignOwner(boatId) {
             </div>
             <div class="modal-footer">
                 <button onclick="closeOwnerModal()" class="btn-secondary">Cancelar</button>
+                <button onclick="goToOwnersAndAdd()" class="btn-secondary">Añadir Propietario</button>
                 <button onclick="confirmAssignOwner(${boatId})" class="btn-primary">Asignar Propietario</button>
             </div>
         </div>
@@ -613,6 +614,15 @@ function closeOwnerModal() {
     if (ownerModal) {
         ownerModal.remove();
     }
+}
+
+// Go to owners page and open add modal
+function goToOwnersAndAdd() {
+    // Close current modal
+    closeOwnerModal();
+
+    // Navigate to owners page
+    window.location.href = 'propietarios.html?openAddModal=true';
 }
 
 // Manage documents for a boat
@@ -870,7 +880,6 @@ function logout() {
     localStorage.removeItem('userType');
     localStorage.removeItem('username');
     localStorage.removeItem('jwt');
-    localStorage.removeItem('refreshToken');
     window.location.href = '../login.html';
 }
 
@@ -900,6 +909,7 @@ window.deleteBoat = deleteBoat;
 window.assignOwner = assignOwner;
 window.confirmAssignOwner = confirmAssignOwner;
 window.closeOwnerModal = closeOwnerModal;
+window.goToOwnersAndAdd = goToOwnersAndAdd;
 window.manageDocuments = manageDocuments;
 window.closeDocumentsModal = closeDocumentsModal;
 window.uploadDocument = uploadDocument;

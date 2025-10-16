@@ -48,7 +48,7 @@ public class JwtUtils {
                 .withClaim("fullName", fullName)
                 .withIssuer(userGenerator)
                 .withIssuedAt(new Date())
-                .withExpiresAt(new Date(System.currentTimeMillis() + (1000*60*60*24*7)))
+                .withExpiresAt(new Date(System.currentTimeMillis() + (1000L*60*60*24*30)))
                 .sign(getAlgorithm());
     }
 
@@ -71,7 +71,7 @@ public class JwtUtils {
                 .withClaim("fullName", fullName)
                 .withIssuer(userGenerator)
                 .withIssuedAt(new Date())
-                .withExpiresAt(new Date(System.currentTimeMillis() + (1000*60*60*24*7)))
+                .withExpiresAt(new Date(System.currentTimeMillis() + (1000L*60*60*24*30)))
                 .sign(getAlgorithm());
     }
 

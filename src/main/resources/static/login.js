@@ -112,7 +112,6 @@ async function handleLogin(event, userType) {
                 localStorage.setItem('username', username);
                 localStorage.setItem('userId', data.id);
                 localStorage.setItem('jwt', data.jwt);
-                localStorage.setItem('refreshToken', data.refreshToken);
 
                 // Extract and store fullName and role from JWT token
                 if (data.jwt) {

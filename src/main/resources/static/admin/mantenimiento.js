@@ -261,13 +261,50 @@ function getPriorityClass(priority) {
 }
 
 // Download receipt function
-function downloadReceipt(paymentId) {
-    const link = document.createElement('a');
-    link.href = `/api/v1/payments/${paymentId}/download-receipt`;
-    link.download = ''; // Let the server set the filename
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+async function downloadReceipt(paymentId) {
+    try {
+        const jwt = localStorage.getItem('jwt');
+        const response = await fetch(`/api/v1/payments/${paymentId}/download-receipt`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${jwt}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al descargar el recibo');
+        }
+
+        // Obtener el blob del archivo
+        const blob = await response.blob();
+
+        // Obtener el nombre del archivo del header Content-Disposition
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'recibo.pdf';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1];
+            }
+        }
+
+        // Crear un link temporal y descargarlo
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+
+        // Limpiar
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        console.log('Recibo descargado exitosamente');
+    } catch (error) {
+        console.error('Error downloading receipt:', error);
+        alert('Error al descargar el recibo. Por favor, inténtalo de nuevo.');
+    }
 }
 
 // Update pagination controls
@@ -514,7 +551,6 @@ function logout() {
     localStorage.removeItem('userType');
     localStorage.removeItem('username');
     localStorage.removeItem('jwt');
-    localStorage.removeItem('refreshToken');
     window.location.href = '../login.html';
 }
 
@@ -527,15 +563,115 @@ function navigateTo(page) {
 
 // Open receipt modal
 function openReceiptModal(paymentId) {
-    currentPaymentId = paymentId;
-    receiptForm.reset();
-    receiptModal.style.display = 'block';
+    // Find the payment associated with this maintenance
+    let payment = null;
+    for (let maintenance of maintenances) {
+        if (maintenance.payment && maintenance.payment.id === paymentId) {
+            payment = maintenance.payment;
+            break;
+        }
+    }
+
+    if (!payment) {
+        alert('No se encontró información del pago');
+        return;
+    }
+
+    const boat = payment.boat;
+    const boatName = boat ? boat.name : 'Sin embarcación';
+
+    // Show payment info
+    document.getElementById('receiptInfo').innerHTML = `
+        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 10px 0; color: #1f2937;">Información del Pago</h4>
+            <p style="margin: 5px 0;"><strong>ID:</strong> ${payment.id}</p>
+            <p style="margin: 5px 0;"><strong>Embarcación:</strong> ${boatName}</p>
+            <p style="margin: 5px 0;"><strong>Monto:</strong> ${formatPrice(payment.mount)}</p>
+            <p style="margin: 5px 0;"><strong>Razón:</strong> Mantenimiento</p>
+            <p style="margin: 5px 0;"><strong>Fecha:</strong> ${new Date(payment.date).toLocaleString('es-ES')}</p>
+        </div>
+    `;
+
+    // Reset form
+    document.getElementById('receiptForm').reset();
+
+    // Store payment ID for later use
+    document.getElementById('receiptModal').dataset.paymentId = paymentId;
+
+    // Show modal
+    document.getElementById('receiptModal').style.display = 'block';
 }
 
 // Close receipt modal
 function closeReceiptModal() {
     receiptModal.style.display = 'none';
     currentPaymentId = null;
+}
+
+// Attach receipt to payment
+async function attachReceipt() {
+    const modal = document.getElementById('receiptModal');
+    const paymentId = modal.dataset.paymentId;
+    const fileInput = document.getElementById('receiptFile');
+    const attachBtn = document.getElementById('attachBtn');
+
+    if (!fileInput.files[0]) {
+        alert('Por favor selecciona un archivo para el recibo.');
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Tamaño máximo: 5MB');
+        return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG) y PDF.');
+        return;
+    }
+
+    // Disable button and show loading
+    attachBtn.disabled = true;
+    attachBtn.textContent = 'Subiendo...';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`/api/v1/payments/${paymentId}/receipt`, {
+            method: 'POST',
+            headers: {
+                'Authorization': getAuthHeaders()['Authorization'] // Only include auth header for multipart
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            // Reload the table to reflect changes
+            const searchTerm = searchInput.value;
+            const statusValue = statusFilter.value;
+            const typeValue = typeFilter.value;
+            loadMaintenances(currentPage, searchTerm, statusValue, typeValue);
+
+            alert('Recibo adjuntado exitosamente.');
+            closeReceiptModal();
+        } else {
+            const error = await response.text();
+            alert('Error al adjuntar el recibo: ' + error);
+        }
+    } catch (error) {
+        console.error('Error attaching receipt:', error);
+        alert('Error de conexión. Por favor, inténtalo de nuevo.');
+    } finally {
+        // Re-enable button
+        attachBtn.disabled = false;
+        attachBtn.textContent = 'Adjuntar Recibo';
+    }
 }
 
 // Upload receipt
@@ -566,8 +702,9 @@ async function uploadReceipt() {
         return;
     }
 
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Subiendo...';
+    const attachBtn = document.getElementById('attachBtn');
+    attachBtn.disabled = true;
+    attachBtn.textContent = 'Subiendo...';
 
     try {
         const uploadData = new FormData();
@@ -599,8 +736,8 @@ async function uploadReceipt() {
         console.error('Error uploading receipt:', error);
         alert('Error al subir el recibo. Inténtalo de nuevo.');
     } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Subir Recibo';
+        attachBtn.disabled = false;
+        attachBtn.textContent = 'Subir Recibo';
     }
 }
 
@@ -623,6 +760,7 @@ window.deleteMaintenance = deleteMaintenance;
 window.openReceiptModal = openReceiptModal;
 window.closeReceiptModal = closeReceiptModal;
 window.uploadReceipt = uploadReceipt;
+window.attachReceipt = attachReceipt;
 window.downloadReceipt = downloadReceipt;
 window.changePage = changePage;
 window.logout = logout;

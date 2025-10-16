@@ -27,6 +27,15 @@ document.addEventListener('DOMContentLoaded', function() {
     loadOwners();
     loadOwnersStats(); // Load general stats
 
+    // Check if we should open the add modal automatically
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('openAddModal') === 'true') {
+        // Small delay to ensure page is fully loaded
+        setTimeout(() => {
+            openAddModal();
+        }, 100);
+    }
+
     // Add cache busting parameter to avoid cached JS
     console.log('Page loaded at:', new Date().toISOString());
 });
@@ -508,7 +517,6 @@ function logout() {
     localStorage.removeItem('userType');
     localStorage.removeItem('username');
     localStorage.removeItem('jwt');
-    localStorage.removeItem('refreshToken');
     window.location.href = '../login.html';
 }
 

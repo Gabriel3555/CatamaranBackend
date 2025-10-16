@@ -218,13 +218,50 @@ function getReasonClass(reason) {
 }
 
 // Download receipt function
-function downloadReceipt(paymentId) {
-    const link = document.createElement('a');
-    link.href = `/api/v1/payments/${paymentId}/download-receipt`;
-    link.download = ''; // Let the server set the filename
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+async function downloadReceipt(paymentId) {
+    try {
+        const jwt = localStorage.getItem('jwt');
+        const response = await fetch(`/api/v1/payments/${paymentId}/download-receipt`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${jwt}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al descargar el recibo');
+        }
+
+        // Obtener el blob del archivo
+        const blob = await response.blob();
+
+        // Obtener el nombre del archivo del header Content-Disposition
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'recibo.pdf';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1];
+            }
+        }
+
+        // Crear un link temporal y descargarlo
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+
+        // Limpiar
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        console.log('Recibo descargado exitosamente');
+    } catch (error) {
+        console.error('Error downloading receipt:', error);
+        alert('Error al descargar el recibo. Por favor, inténtalo de nuevo.');
+    }
 }
 
 // Update pagination controls
@@ -507,7 +544,6 @@ function logout() {
     localStorage.removeItem('userType');
     localStorage.removeItem('username');
     localStorage.removeItem('jwt');
-    localStorage.removeItem('refreshToken');
     window.location.href = '../login.html';
 }
 

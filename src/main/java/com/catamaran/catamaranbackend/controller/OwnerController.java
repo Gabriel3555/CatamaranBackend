@@ -15,6 +15,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -254,6 +257,74 @@ public class OwnerController {
                 })
                 .collect(Collectors.toList());
         response.put("pendingPayments", pendingPaymentsData);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/boats/{userId}")
+    public ResponseEntity<Map<String, Object>> getOwnerBoats(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        // Validate that the authenticated user is the owner and matches the requested userId
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", e.getMessage()));
+        }
+
+        // Ensure the authenticated user can only access their own data
+        if (!authenticatedUser.getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "No tienes permisos para acceder a estos datos"));
+        }
+
+        UserEntity user = authenticatedUser;
+
+        // Create pageable
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Get owner's boats with pagination
+        Page<BoatEntity> boatsPage = boatRepository.findByOwner(user, pageable);
+
+        // Convert to response format
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", boatsPage.getContent().stream().map(boat -> {
+            Map<String, Object> boatData = new HashMap<>();
+            boatData.put("id", boat.getId());
+            boatData.put("name", boat.getName());
+            boatData.put("model", boat.getModel());
+            boatData.put("type", boat.getType() != null ? boat.getType().name() : null);
+            boatData.put("location", boat.getLocation());
+            boatData.put("price", boat.getPrice());
+            boatData.put("balance", boat.getBalance());
+
+            // Calculate maintenance debt
+            double maintenanceDebt = boat.getMaintanances().stream()
+                    .filter(m -> m.getCost() != null)
+                    .filter(m -> m.getPayment() == null || m.getPayment().getStatus() != PaymentStatus.PAGADO)
+                    .mapToDouble(MaintananceEntity::getCost)
+                    .sum();
+            boatData.put("maintenanceDebt", maintenanceDebt);
+
+            // Calculate boat debt (unpaid boat payments)
+            double boatDebt = boat.getPayments().stream()
+                    .filter(p -> p.getReason() == ReasonPayment.PAGO)
+                    .filter(p -> p.getStatus() == PaymentStatus.POR_PAGAR)
+                    .mapToDouble(PaymentEntity::getMount)
+                    .sum();
+            boatData.put("boatDebt", boatDebt);
+
+            return boatData;
+        }).collect(Collectors.toList()));
+
+        response.put("totalPages", boatsPage.getTotalPages());
+        response.put("totalElements", boatsPage.getTotalElements());
+        response.put("size", boatsPage.getSize());
+        response.put("number", boatsPage.getNumber());
 
         return ResponseEntity.ok(response);
     }

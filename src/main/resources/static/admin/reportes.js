@@ -174,7 +174,6 @@ function logout() {
     localStorage.removeItem('userType');
     localStorage.removeItem('username');
     localStorage.removeItem('jwt');
-    localStorage.removeItem('refreshToken');
 
     // Redirect to login
     window.location.href = '../login.html';

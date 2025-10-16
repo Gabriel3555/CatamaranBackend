@@ -6,6 +6,8 @@
     <title>Mis Embarcaciones - MANTA</title>
     <link rel="stylesheet" href="../login.css">
     <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="embarcaciones.css">
+    <link rel="stylesheet" href="../common-pagination.css">
 </head>
 <body>
     <!-- Header -->
@@ -42,17 +44,43 @@
                 <p>Información completa de tus embarcaciones</p>
             </div>
 
-            <!-- Boats Section -->
-            <div class="section-card">
-                <div class="section-header">
-                    <h3>Todas las Embarcaciones</h3>
-                    <p>Detalles completos de cada embarcación asignada</p>
+            <!-- Boats Table Section -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Mis Embarcaciones</h3>
+                    <span id="tableCount">0 embarcaciones</span>
                 </div>
-                <div class="boats-grid" id="boatsGrid">
-                    <!-- Boats will be loaded here -->
-                </div>
-                <div id="noBoatsMessage" style="text-align: center; color: #6b7280; padding: 20px; display: none;">
+                <table class="boats-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Modelo</th>
+                            <th>Ubicación</th>
+                            <th>Precio</th>
+                            <th>Deuda Mantenimiento</th>
+                            <th>Deuda Barco</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="boatsTableBody">
+                        <!-- Boats will be loaded here -->
+                    </tbody>
+                </table>
+                <div id="noBoatsMessage" style="text-align: center; color: #6b7280; padding: 40px; display: none;">
                     No tienes embarcaciones asignadas
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="paginationContainer" class="pagination-container" style="display: none;">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Mostrando 0-0 de 0 embarcaciones</span>
+                </div>
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="pagination-btn" disabled>Anterior</button>
+                    <span id="currentPageInfo" class="page-info">Página 1</span>
+                    <button id="nextPageBtn" class="pagination-btn" disabled>Siguiente</button>
                 </div>
             </div>
         </div>
@@ -83,6 +111,7 @@
         // Mostrar el nombre del usuario
         document.getElementById('userFullName').textContent = localStorage.getItem('fullName') || 'Usuario';
     </script>
+    <script src="../common-pagination.js"></script>
     <script src="embarcaciones.js"></script>
 </body>
 </html>

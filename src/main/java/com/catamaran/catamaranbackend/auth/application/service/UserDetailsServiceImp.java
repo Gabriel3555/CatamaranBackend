@@ -59,9 +59,8 @@ public class UserDetailsServiceImp implements LoginUseCase, AuthenticateUseCase,
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String jwtToken = jwtUtils.createToken(authentication);
-        String refreshToken = jwtUtils.createRefreshToken(authentication);
 
-        return new AuthResponse(userEntity.getId(), username, userEntity.getRole(), "Inicio de sesión exitoso", jwtToken, refreshToken,true);
+        return new AuthResponse(userEntity.getId(), username, userEntity.getRole(), "Inicio de sesión exitoso", jwtToken, true);
     }
 
     @Override

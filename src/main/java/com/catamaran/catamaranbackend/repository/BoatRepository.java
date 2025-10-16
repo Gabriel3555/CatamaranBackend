@@ -12,4 +12,5 @@ import java.util.List;
 @Repository
 public interface BoatRepository extends JpaRepository<BoatEntity, Long> {
     List<BoatEntity> findByOwner(UserEntity owner);
+    Page<BoatEntity> findByOwner(UserEntity owner, Pageable pageable);
 }

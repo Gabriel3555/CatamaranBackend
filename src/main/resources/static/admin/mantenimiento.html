@@ -236,21 +236,24 @@
     <div id="receiptModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Añadir Recibo de Pago</h3>
+                <h3>Adjuntar Recibo</h3>
                 <button onclick="closeReceiptModal()" class="close-btn">✕</button>
             </div>
             <div class="modal-body">
+                <div class="receipt-info" id="receiptInfo">
+                    <!-- Payment info will be shown here -->
+                </div>
                 <form id="receiptForm">
                     <div class="form-group">
-                        <label for="receiptFile">Seleccionar archivo de recibo</label>
+                        <label for="receiptFile">Seleccionar Archivo del Recibo</label>
                         <input type="file" id="receiptFile" name="receipt" accept="image/*,.pdf" required>
-                        <small class="form-hint">Formatos permitidos: JPG, PNG, PDF. Tamaño máximo: 5MB</small>
+                        <small style="color: #6b7280;">Formatos permitidos: JPG, PNG, PDF. Tamaño máximo: 5MB</small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button onclick="closeReceiptModal()" class="btn-secondary">Cancelar</button>
-                <button onclick="uploadReceipt()" class="btn-primary" id="uploadBtn">Subir Recibo</button>
+                <button onclick="attachReceipt()" class="btn-primary" id="attachBtn">Adjuntar Recibo</button>
             </div>
         </div>
     </div>

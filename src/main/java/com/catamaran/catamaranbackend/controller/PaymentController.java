@@ -17,7 +17,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -254,7 +256,7 @@ public class PaymentController {
                 fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
 
-            String fileName = "receipt_" + id + "" + System.currentTimeMillis() + "" + originalFilename;
+            String fileName = "receipt_" + id + "_" + System.currentTimeMillis() + "_" + originalFilename;
 
             // Ruta completa del archivo
             Path filePath = uploadPath.resolve(fileName);
@@ -285,7 +287,6 @@ public class PaymentController {
         }
     }
 
-
     @GetMapping("/{id}/download-receipt")
     public ResponseEntity<Resource> downloadReceipt(@PathVariable Long id) {
         Optional<PaymentEntity> paymentOpt = paymentRepository.findById(id);
@@ -300,11 +301,17 @@ public class PaymentController {
             Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
             Path filePath = uploadPath.resolve(payment.getInvoice_url()).normalize();
 
-            // Verificar que el archivo está dentro del directorio permitido (seguridad)
+            // Verificar seguridad
             if (!filePath.startsWith(uploadPath)) {
                 return ResponseEntity.badRequest().build();
             }
 
+            // Verificar que el archivo existe
+            if (!Files.exists(filePath)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Crear el recurso
             Resource resource = new FileSystemResource(filePath);
 
             if (!resource.exists() || !resource.isReadable()) {
@@ -312,30 +319,32 @@ public class PaymentController {
             }
 
             // Determinar content type
-            String contentType = "application/octet-stream";
-            try {
-                contentType = Files.probeContentType(filePath);
-                if (contentType == null) {
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null) {
+                String filename = payment.getInvoice_url().toLowerCase();
+                if (filename.endsWith(".pdf")) {
+                    contentType = "application/pdf";
+                } else if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) {
+                    contentType = "image/jpeg";
+                } else if (filename.endsWith(".png")) {
+                    contentType = "image/png";
+                } else {
                     contentType = "application/octet-stream";
                 }
-            } catch (IOException e) {
-                // Usar default
             }
 
-            // Obtener el nombre original del archivo desde la URL o usar el nombre del archivo
-            String filename = payment.getInvoice_url();
-            if (filename.contains("_")) {
-                // Extraer el nombre original si está en el formato "receipt_ID_timestamp_originalname"
-                String[] parts = filename.split("_", 4);
-                if (parts.length >= 4) {
-                    filename = parts[3];
-                }
-            }
+            // Usar el nombre original del archivo almacenado para la descarga
+            String originalFilename = payment.getInvoice_url();
+            String downloadFilename = originalFilename;
+
+            // Construir el header Content-Disposition correctamente escapando caracteres especiales
+            String escapedFilename = downloadFilename.replace("\"", "\\\"");
+            String contentDisposition = "attachment; filename=\"" + escapedFilename + "\"; filename*=UTF-8''" + java.net.URLEncoder.encode(downloadFilename, "UTF-8").replace("+", "%20");
 
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + filename + "\"")
+                    .contentLength(resource.contentLength())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                     .body(resource);
 
         } catch (Exception e) {
