@@ -344,7 +344,7 @@ function editMaintenance(id) {
     saveBtn.textContent = 'Guardar Cambios';
 
     // Fill form with maintenance data
-    document.getElementById('boatSelect').value = maintenance.boat.id;
+    document.getElementById('boatSelect').value = maintenance.boat && maintenance.boat.id ? maintenance.boat.id : '';
     document.getElementById('maintenanceType').value = maintenance.type;
     document.getElementById('maintenanceStatus').value = maintenance.status;
     document.getElementById('priority').value = maintenance.priority;
@@ -359,15 +359,31 @@ function editMaintenance(id) {
 }
 
 // Delete maintenance
-function deleteMaintenance(id) {
+async function deleteMaintenance(id) {
     if (!confirm('¿Estás seguro de eliminar este mantenimiento? Esta acción no se puede deshacer.')) return;
 
-    // For now, just remove from local array
-    // In a real app, this would call the API
-    maintenances = maintenances.filter(maintenance => maintenance.id !== id);
-    filteredMaintenances = filteredMaintenances.filter(maintenance => maintenance.id !== id);
-    updateMetrics();
-    renderMaintenances();
+    try {
+        const response = await fetch(`/api/v1/maintenances/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            // Remove from local arrays only after successful API deletion
+            maintenances = maintenances.filter(maintenance => maintenance.id !== id);
+            filteredMaintenances = filteredMaintenances.filter(maintenance => maintenance.id !== id);
+            updateMetrics();
+            renderMaintenances();
+        } else {
+            console.error('Failed to delete maintenance - Status:', response.status);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            alert('Error al eliminar el mantenimiento. Inténtalo de nuevo.');
+        }
+    } catch (error) {
+        console.error('Error deleting maintenance:', error);
+        alert('Error al eliminar el mantenimiento. Inténtalo de nuevo.');
+    }
 }
 
 // Handle form submission

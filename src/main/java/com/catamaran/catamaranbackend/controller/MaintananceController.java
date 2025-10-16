@@ -86,9 +86,23 @@ public class MaintananceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<MaintananceEntity> updateMaintenance(@PathVariable Long id, @RequestBody MaintananceEntity maintenance) {
-        if (!maintananceRepository.existsById(id)) {
+        Optional<MaintananceEntity> existingMaintenanceOpt = maintananceRepository.findById(id);
+        if (existingMaintenanceOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
+        MaintananceEntity existingMaintenance = existingMaintenanceOpt.get();
+
+        // Preserve the boat relationship if not provided in the update
+        if (maintenance.getBoat() == null) {
+            maintenance.setBoat(existingMaintenance.getBoat());
+        }
+
+        // Preserve other existing relationships
+        if (maintenance.getPayment() == null) {
+            maintenance.setPayment(existingMaintenance.getPayment());
+        }
+
         maintenance.setId(id);
         MaintananceEntity updatedMaintenance = maintananceRepository.save(maintenance);
         return ResponseEntity.ok(updatedMaintenance);

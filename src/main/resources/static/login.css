@@ -246,36 +246,6 @@ body {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.password-input-container {
-    position: relative;
-}
-
-.password-input {
-    padding-right: 3rem;
-}
-
-.password-toggle {
-    position: absolute;
-    right: 0;
-    top: 0;
-    height: 100%;
-    padding: 0 0.75rem;
-    background: none;
-    border: none;
-    color: #9ca3af;
-    cursor: pointer;
-    transition: color 0.2s ease-in-out;
-    display: flex;
-    align-items: center;
-}
-
-.password-toggle:hover {
-    color: #6b7280;
-}
-
-.eye-icon {
-    font-size: 1rem;
-}
 
 /* Submit buttons */
 .submit-button {

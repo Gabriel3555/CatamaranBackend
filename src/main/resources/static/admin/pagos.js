@@ -239,7 +239,15 @@ function updatePaginationControls() {
 // Change page function
 function changePage(page) {
     if (page < 0 || page >= totalPages) return;
-    loadPayments(page);
+
+    // Get current filter values
+    const searchTerm = searchInput.value;
+    const reasonValue = reasonFilter.value;
+    const monthValue = monthFilter.value;
+    const statusValue = statusFilter.value;
+
+    // Load payments with current filters
+    loadPayments(page, searchTerm, reasonValue, monthValue, statusValue);
 }
 
 // Filter payments based on search and filters

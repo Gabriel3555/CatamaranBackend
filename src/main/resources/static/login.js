@@ -1,6 +1,5 @@
 // State management
 let currentTab = 'admin';
-let showPassword = false;
 
 // DOM elements
 const adminForm = document.getElementById('adminForm');
@@ -36,15 +35,6 @@ function switchTab(tab) {
     hideError();
 }
 
-// Password toggle functionality
-function togglePassword(inputId) {
-    const input = document.getElementById(inputId);
-    const eyeIcon = document.getElementById(inputId === 'admin-password' ? 'admin-eye-icon' : 'owner-eye-icon');
-
-    showPassword = !showPassword;
-    input.type = showPassword ? 'text' : 'password';
-    eyeIcon.textContent = showPassword ? '🙈' : '👁️';
-}
 
 // Error handling
 function showError(message) {
@@ -125,7 +115,8 @@ async function handleLogin(event, userType) {
 
             // Extract and store fullName and role from JWT token
             const payload = data.jwt.split('.')[1];
-            const decodedPayload = JSON.parse(atob(payload));
+            // Properly decode UTF-8 base64 payload
+            const decodedPayload = JSON.parse(decodeURIComponent(escape(atob(payload))));
             localStorage.setItem('fullName', decodedPayload.fullName);
             localStorage.setItem('role', decodedPayload.role);
 
