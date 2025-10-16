@@ -93,41 +93,64 @@ async function handleLogin(event, userType) {
         const data = await response.json();
 
         if (response.ok && data.status) {
-            // Determine user type based on role from backend
-            const actualUserType = data.role === 'ADMIN' ? 'admin' : 'owner';
+            try {
+                // Determine user type based on role from backend
+                const actualUserType = data.role === 'ADMIN' ? 'admin' : 'owner';
 
-            // Validate that the user type matches the selected login type
-            if (userType !== actualUserType) {
-                if (userType === 'admin') {
-                    showError('Este usuario no tiene permisos de administrador. Por favor, usa el acceso de propietario.');
-                } else {
-                    showError('Este usuario es administrador. Por favor, usa el acceso administrativo.');
+                // Validate that the user type matches the selected login type
+                if (userType !== actualUserType) {
+                    if (userType === 'admin') {
+                        showError('Este usuario no tiene permisos de administrador. Por favor, usa el acceso de propietario.');
+                    } else {
+                        showError('Este usuario es administrador. Por favor, usa el acceso administrativo.');
+                    }
+                    return;
                 }
-                return;
-            }
 
-            // Store authentication data
-            localStorage.setItem('userType', actualUserType);
-            localStorage.setItem('username', username);
-            localStorage.setItem('userId', data.id);
-            localStorage.setItem('jwt', data.jwt);
-            localStorage.setItem('refreshToken', data.refreshToken);
+                // Store authentication data
+                localStorage.setItem('userType', actualUserType);
+                localStorage.setItem('username', username);
+                localStorage.setItem('userId', data.id);
+                localStorage.setItem('jwt', data.jwt);
+                localStorage.setItem('refreshToken', data.refreshToken);
 
-            // Extract and store fullName and role from JWT token
-            const payload = data.jwt.split('.')[1];
-            // Properly decode UTF-8 base64 payload
-            const decodedPayload = JSON.parse(decodeURIComponent(escape(atob(payload))));
-            localStorage.setItem('fullName', decodedPayload.fullName);
-            localStorage.setItem('role', decodedPayload.role);
+                // Extract and store fullName and role from JWT token
+                if (data.jwt) {
+                    try {
+                        const payload = data.jwt.split('.')[1];
+                        // Properly decode UTF-8 base64 payload
+                        const decodedPayload = JSON.parse(decodeURIComponent(escape(atob(payload))));
+                        localStorage.setItem('fullName', decodedPayload.fullName || username);
+                        localStorage.setItem('role', decodedPayload.role || data.role);
+                    } catch (jwtError) {
+                        console.warn('Error decoding JWT payload:', jwtError);
+                        // Use data from response if JWT decoding fails
+                        localStorage.setItem('fullName', username);
+                        localStorage.setItem('role', data.role);
+                    }
+                } else {
+                    // Fallback if no JWT token
+                    localStorage.setItem('fullName', username);
+                    localStorage.setItem('role', data.role);
+                }
 
-            // Redirect based on actual user type
-            if (actualUserType === 'admin') {
-                window.location.href = 'admin/dashboard.html';
-            } else {
-                window.location.href = 'owner/dashboard.html';
+                // Redirect based on actual user type
+                if (actualUserType === 'admin') {
+                    window.location.href = 'admin/dashboard.html';
+                } else {
+                    window.location.href = 'owner/dashboard.html';
+                }
+            } catch (error) {
+                console.error('Error processing login data:', error);
+                showError('Error procesando la información de login. Inténtalo de nuevo.');
             }
         } else {
-            showError(data.message || 'Credenciales incorrectas. Verifica tu usuario y contraseña.');
+            // Handle error responses from the global exception handler
+            if (data && data.message) {
+                showError(data.message);
+            } else {
+                showError('Credenciales incorrectas. Verifica tu usuario y contraseña.');
+            }
         }
     } catch (error) {
         console.error('Login error:', error);

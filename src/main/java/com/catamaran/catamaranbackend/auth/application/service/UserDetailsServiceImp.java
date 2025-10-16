@@ -24,6 +24,9 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.catamaran.catamaranbackend.auth.security.InvalidCredentialsException;
+import com.catamaran.catamaranbackend.auth.security.UserNotFoundException;
+import com.catamaran.catamaranbackend.auth.security.UserInactiveException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -44,10 +47,10 @@ public class UserDetailsServiceImp implements LoginUseCase, AuthenticateUseCase,
         String password = authLoginRequest.password();
 
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("user not found!"));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
 
         if (!userEntity.getStatus()) {
-            throw new BadCredentialsException("Invalid username or password!");
+            throw new UserInactiveException("Usuario inactivo. Contacta al administrador.");
         }
 
         Long id = userEntity.getId();
@@ -58,7 +61,7 @@ public class UserDetailsServiceImp implements LoginUseCase, AuthenticateUseCase,
         String jwtToken = jwtUtils.createToken(authentication);
         String refreshToken = jwtUtils.createRefreshToken(authentication);
 
-        return new AuthResponse(userEntity.getId(), username, userEntity.getRole(), "logged successfully!", jwtToken, refreshToken,true);
+        return new AuthResponse(userEntity.getId(), username, userEntity.getRole(), "Inicio de sesión exitoso", jwtToken, refreshToken,true);
     }
 
     @Override
@@ -66,11 +69,11 @@ public class UserDetailsServiceImp implements LoginUseCase, AuthenticateUseCase,
         UserDetails userDetails = this.searchUserDetails(userPrincipal.username());
 
         if (userDetails == null) {
-            throw new BadCredentialsException("Invalid username or password");
+            throw new InvalidCredentialsException("Credenciales inválidas. Verifica tu usuario y contraseña.");
         }
 
         if (!passwordEncoder.matches(password, userDetails.getPassword())) {
-            throw new BadCredentialsException("invalid password");
+            throw new InvalidCredentialsException("Contraseña incorrecta. Verifica tu contraseña.");
         }
 
         return new UsernamePasswordAuthenticationToken(userPrincipal, null, userDetails.getAuthorities());
@@ -95,7 +98,7 @@ public class UserDetailsServiceImp implements LoginUseCase, AuthenticateUseCase,
                     .orElseThrow(() -> new UsernameNotFoundException("user not found"));
 
             if (!userEntity.getStatus()) {
-                throw new BadCredentialsException("Invalid username or password!");
+                throw new UserInactiveException("Usuario inactivo. Contacta al administrador.");
             }
 
             GrantedAuthority role = new SimpleGrantedAuthority("ROLE_".concat(userEntity.getRole().name()));

@@ -10,6 +10,8 @@ import com.catamaran.catamaranbackend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,13 +41,59 @@ public class OwnerController {
     @Value("${app.upload.dir:src/main/resources/static/documents/}")
     private String uploadDir;
 
+    /**
+     * Valida que el usuario autenticado tenga permisos de propietario
+     * @return Usuario autenticado si tiene permisos de propietario
+     * @throws SecurityException si el usuario no tiene permisos
+     */
+    private UserEntity validateOwnerAccess() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("Usuario no autenticado");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof com.catamaran.catamaranbackend.auth.application.dto.UserPrincipal)) {
+            throw new SecurityException("Tipo de autenticación inválido");
+        }
+
+        com.catamaran.catamaranbackend.auth.application.dto.UserPrincipal userPrincipal =
+            (com.catamaran.catamaranbackend.auth.application.dto.UserPrincipal) principal;
+
+        UserEntity user = userRepository.findById(userPrincipal.id()).orElse(null);
+        if (user == null) {
+            throw new SecurityException("Usuario no encontrado");
+        }
+
+        if (user.getRole() != Role.PROPIETARIO) {
+            throw new SecurityException("Acceso denegado. Se requieren permisos de propietario.");
+        }
+
+        if (!user.getStatus()) {
+            throw new SecurityException("Usuario inactivo. Contacta al administrador.");
+        }
+
+        return user;
+    }
+
     @GetMapping("/dashboard/{userId}")
     public ResponseEntity<Map<String, Object>> getOwnerDashboard(@PathVariable Long userId) {
-        // Find the user
-        UserEntity user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
+        // Validate that the authenticated user is the owner and matches the requested userId
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", e.getMessage()));
         }
+
+        // Ensure the authenticated user can only access their own data
+        if (!authenticatedUser.getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "No tienes permisos para acceder a estos datos"));
+        }
+
+        UserEntity user = authenticatedUser;
 
         Map<String, Object> response = new HashMap<>();
 
@@ -212,11 +260,22 @@ public class OwnerController {
 
     @GetMapping("/payments/{userId}")
     public ResponseEntity<List<Map<String, Object>>> getOwnerPayments(@PathVariable Long userId) {
-        // Find the user
-        UserEntity user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
+        // Validate that the authenticated user is the owner and matches the requested userId
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(List.of(Map.of("message", e.getMessage())));
         }
+
+        // Ensure the authenticated user can only access their own data
+        if (!authenticatedUser.getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(List.of(Map.of("message", "No tienes permisos para acceder a estos datos")));
+        }
+
+        UserEntity user = authenticatedUser;
 
         // Get owner's boats
         List<BoatEntity> ownerBoats = boatRepository.findByOwner(user);
@@ -247,16 +306,28 @@ public class OwnerController {
 
     @GetMapping("/boats/{boatId}/documents")
     public ResponseEntity<List<BoatDocumentEntity>> getBoatDocuments(@PathVariable Long boatId) {
-        // Find the user (assuming we can get user from security context, but for now using a simple approach)
-        // In a real app, you'd get the authenticated user
-        // For now, we'll assume the boat belongs to the owner - this should be validated
+        // Validate that the authenticated user is the owner
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
         if (boatOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        List<BoatDocumentEntity> documents = boatOpt.get().getDocuments();
+        BoatEntity boat = boatOpt.get();
+
+        // Validate that the boat belongs to the authenticated owner
+        if (!boat.getOwner().getId().equals(authenticatedUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ArrayList<>());
+        }
+
+        List<BoatDocumentEntity> documents = boat.getDocuments();
         return ResponseEntity.ok(documents != null ? documents : new ArrayList<>());
     }
 
@@ -266,9 +337,24 @@ public class OwnerController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("name") String documentName) {
 
+        // Validate that the authenticated user is the owner
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
         if (boatOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
+        }
+
+        BoatEntity boat = boatOpt.get();
+
+        // Validate that the boat belongs to the authenticated owner
+        if (!boat.getOwner().getId().equals(authenticatedUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         try {
@@ -294,7 +380,6 @@ public class OwnerController {
             BoatDocumentEntity savedDocument = boatDocumentRepository.save(document);
 
             // Agregar el documento al bote
-            BoatEntity boat = boatOpt.get();
             if (boat.getDocuments() == null) {
                 boat.setDocuments(new ArrayList<>());
             }
@@ -314,9 +399,24 @@ public class OwnerController {
             @PathVariable Long documentId,
             @RequestParam("name") String documentName) {
 
+        // Validate that the authenticated user is the owner
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
         if (boatOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
+        }
+
+        BoatEntity boat = boatOpt.get();
+
+        // Validate that the boat belongs to the authenticated owner
+        if (!boat.getOwner().getId().equals(authenticatedUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         Optional<BoatDocumentEntity> documentOpt = boatDocumentRepository.findById(documentId);
@@ -325,7 +425,6 @@ public class OwnerController {
         }
 
         // Verificar que el documento pertenece al bote
-        BoatEntity boat = boatOpt.get();
         boolean documentBelongsToBoat = boat.getDocuments() != null &&
                 boat.getDocuments().stream().anyMatch(doc -> doc.getId().equals(documentId));
 
@@ -345,9 +444,24 @@ public class OwnerController {
             @PathVariable Long boatId,
             @PathVariable Long documentId) {
 
+        // Validate that the authenticated user is the owner
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
         if (boatOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
+        }
+
+        BoatEntity boat = boatOpt.get();
+
+        // Validate that the boat belongs to the authenticated owner
+        if (!boat.getOwner().getId().equals(authenticatedUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         Optional<BoatDocumentEntity> documentOpt = boatDocumentRepository.findById(documentId);
@@ -355,7 +469,6 @@ public class OwnerController {
             return ResponseEntity.notFound().build();
         }
 
-        BoatEntity boat = boatOpt.get();
         BoatDocumentEntity document = documentOpt.get();
 
         // Verificar que el documento pertenece al bote
