@@ -31,7 +31,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromEmail);
-            helper.setTo(adminEmail); // Send to admin instead of user
+            helper.setTo(userEmail); // Send to the user who requested password recovery
             helper.setSubject("Solicitud de Recuperación de Contraseña - Catamaran");
 
             String resetLink = frontendUrl + "/reset-password.html?token=" + resetToken;
@@ -40,7 +40,7 @@ public class EmailService {
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
-            log.info("Email de recuperación de contraseña enviado al administrador para el usuario: {}", userEmail);
+            log.info("Email de recuperación de contraseña enviado al usuario: {}", userEmail);
         } catch (MessagingException e) {
             log.error("Error al enviar email de recuperación de contraseña para el usuario: {}", userEmail, e);
             throw new RuntimeException("Error al enviar el email de recuperación", e);

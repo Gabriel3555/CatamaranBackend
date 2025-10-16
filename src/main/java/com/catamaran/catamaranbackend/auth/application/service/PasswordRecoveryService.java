@@ -40,7 +40,7 @@ public class PasswordRecoveryService {
             
             userRepository.save(user);
 
-            // Send email to admin with user information
+            // Send email to user with password reset instructions
             String userName = user.getFullName() != null ? user.getFullName() : user.getUsername();
             emailService.sendPasswordResetEmail(user.getEmail(), resetToken, userName);
 
