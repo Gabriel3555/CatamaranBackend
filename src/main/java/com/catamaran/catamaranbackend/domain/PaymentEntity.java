@@ -39,4 +39,16 @@ public class PaymentEntity {
     @ManyToOne
     @JoinColumn(name = "boat_id")
     private BoatEntity boat;
+
+    // Transient field for JSON deserialization
+    @Transient
+    private Long boatId;
+
+    public Long getBoatId() {
+        return boatId;
+    }
+
+    public void setBoatId(Long boatId) {
+        this.boatId = boatId;
+    }
 }

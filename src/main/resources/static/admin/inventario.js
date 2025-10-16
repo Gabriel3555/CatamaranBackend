@@ -3,6 +3,7 @@
 // State management
 let boats = [];
 let filteredBoats = [];
+let allBoats = []; // Datos para métricas generales
 let currentEditingBoat = null;
 let owners = [];
 let currentPage = 0;
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadBoats();
     loadOwners();
+    loadGeneralMetrics(); // Load general metrics data
 
     // Add cache busting parameter to avoid cached JS
     console.log('Page loaded at:', new Date().toISOString());
@@ -86,6 +88,7 @@ async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
             console.log('Loaded boats:', boats.length, 'boats');
             console.log('Total elements:', totalElements);
 
+            // Update metrics with general data (will load if needed)
             updateMetrics();
             renderBoats();
             updatePaginationControls();
@@ -95,6 +98,7 @@ async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
             filteredBoats = [];
             totalPages = 1;
             totalElements = 0;
+            // Update metrics with general data (will load if needed)
             updateMetrics();
             renderBoats();
             updatePaginationControls();
@@ -105,6 +109,7 @@ async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
         filteredBoats = [];
         totalPages = 1;
         totalElements = 0;
+        // Update metrics with general data (will load if needed)
         updateMetrics();
         renderBoats();
         updatePaginationControls();
@@ -136,18 +141,47 @@ async function loadOwners() {
     }
 }
 
+// Load all boats for general metrics (without filters)
+async function loadGeneralMetrics() {
+    try {
+        const response = await fetch(`/api/v1/boat?page=0&size=1000`, {
+            headers: getAuthHeaders()
+        });
 
-// Update metrics cards
-function updateMetrics() {
-    const totalBoats = boats.length;
-    const availableBoats = boats.filter(boat => !boat.owner).length; // Available if no owner assigned
+        if (response.ok) {
+            const data = await response.json();
+            allBoats = data.content || [];
+            console.log('Loaded general metrics data:', allBoats.length, 'boats');
+        } else {
+            console.error('Failed to load general metrics - Status:', response.status);
+            allBoats = [];
+        }
+    } catch (error) {
+        console.error('Error loading general metrics:', error);
+        allBoats = [];
+    }
+}
+
+
+// Update metrics cards (always shows general data, not filtered data)
+async function updateMetrics() {
+    // Always use general data for metrics, load if not available
+    if (allBoats.length === 0) {
+        await loadGeneralMetrics();
+    }
+
+    const metricsBoats = allBoats.length > 0 ? allBoats : boats; // Use allBoats if available, fallback to boats
+    const totalBoats = metricsBoats.length;
+    const availableBoats = metricsBoats.filter(boat => !boat.owner).length; // Available if no owner assigned
     const maintenanceBoats = 0; // For now, no maintenance status tracking
-    const ownedBoats = boats.filter(boat => boat.owner).length;
+    const ownedBoats = metricsBoats.filter(boat => boat.owner).length;
 
     document.getElementById('totalBoats').textContent = totalBoats;
     document.getElementById('availableBoats').textContent = availableBoats;
     document.getElementById('maintenanceBoats').textContent = maintenanceBoats;
     document.getElementById('ownedBoats').textContent = ownedBoats;
+
+    console.log('Updated metrics - Total:', totalBoats, 'Available:', availableBoats, 'Owned:', ownedBoats);
 }
 
 // Filter boats based on search and filters
@@ -158,6 +192,8 @@ function filterBoats() {
 
     // Reload data with filters applied server-side
     loadBoats(0, searchTerm, typeValue, statusValue);
+
+    // Note: Metrics remain unchanged as they always show general data
 }
 
 // Render boats in the table
@@ -375,6 +411,7 @@ async function deleteBoat(id) {
             const typeValue = typeFilter.value;
             const statusValue = statusFilter.value;
             loadBoats(currentPage, searchTerm, typeValue, statusValue);
+            loadGeneralMetrics(); // Also reload general metrics data
         } else {
             console.error('Failed to delete boat');
             // Fallback to local deletion
@@ -472,6 +509,7 @@ async function saveBoat(event) {
         const typeValue = typeFilter.value;
         const statusValue = statusFilter.value;
         loadBoats(currentPage, searchTerm, typeValue, statusValue);
+        loadGeneralMetrics(); // Also reload general metrics data
         closeModal();
     } catch (error) {
         console.error('Error saving boat:', error);
@@ -535,6 +573,7 @@ async function confirmAssignOwner(boatId) {
                 const typeValue = typeFilter.value;
                 const statusValue = statusFilter.value;
                 loadBoats(currentPage, searchTerm, typeValue, statusValue);
+                loadGeneralMetrics(); // Also reload general metrics data
                 closeOwnerModal();
                 alert('Propietario asignado exitosamente');
             } catch (jsonError) {

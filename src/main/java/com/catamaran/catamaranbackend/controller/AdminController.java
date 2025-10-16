@@ -99,6 +99,40 @@ public class AdminController {
         return ResponseEntity.ok(maintenancesByStatus);
     }
 
+    @GetMapping("/owners/stats")
+    public ResponseEntity<Map<String, Object>> getOwnersStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Get all owners (only users with PROPIETARIO role)
+        List<UserEntity> allOwners = userRepository.findAll().stream()
+                .filter(user -> user.getRole() == Role.PROPIETARIO)
+                .collect(Collectors.toList());
+
+        // Total owners
+        stats.put("totalOwners", allOwners.size());
+
+        // Active owners
+        long activeOwners = allOwners.stream()
+                .filter(user -> user.getStatus() != null && user.getStatus())
+                .count();
+        stats.put("activeOwners", activeOwners);
+
+        // Inactive owners
+        long inactiveOwners = allOwners.size() - activeOwners;
+        stats.put("inactiveOwners", inactiveOwners);
+
+        // Owners with boats
+        long ownersWithBoats = allOwners.stream()
+                .filter(owner -> {
+                    List<BoatEntity> boats = boatRepository.findByOwner(owner);
+                    return boats != null && !boats.isEmpty();
+                })
+                .count();
+        stats.put("ownersWithBoats", ownersWithBoats);
+
+        return ResponseEntity.ok(stats);
+    }
+
     @GetMapping("/owners")
     public ResponseEntity<Page<Map<String, Object>>> getUsersWithBoatCounts(
             @RequestParam(defaultValue = "0") int page,

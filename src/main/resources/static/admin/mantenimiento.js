@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     setupEventListeners();
     loadBoats();
-    loadMaintenances();
+    loadMaintenanceStatistics(); // Load general statistics
+    loadMaintenances(); // Load paginated maintenances for the table
 });
 
 // Authentication check
@@ -96,6 +97,46 @@ function populateBoatSelect() {
     });
 }
 
+// Load general maintenance statistics
+async function loadMaintenanceStatistics() {
+    try {
+        const response = await fetch('/api/v1/maintenances/statistics', {
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            const statistics = await response.json();
+            updateMetricsFromStatistics(statistics);
+        } else {
+            console.error('Failed to load maintenance statistics');
+            // Set default values if statistics fail to load
+            updateMetricsFromStatistics({
+                totalMaintenances: 0,
+                pendingMaintenances: 0,
+                completedMaintenances: 0,
+                totalCost: 0
+            });
+        }
+    } catch (error) {
+        console.error('Error loading maintenance statistics:', error);
+        // Set default values if statistics fail to load
+        updateMetricsFromStatistics({
+            totalMaintenances: 0,
+            pendingMaintenances: 0,
+            completedMaintenances: 0,
+            totalCost: 0
+        });
+    }
+}
+
+// Update metrics using statistics data
+function updateMetricsFromStatistics(statistics) {
+    document.getElementById('totalMaintenances').textContent = statistics.totalMaintenances || 0;
+    document.getElementById('pendingMaintenances').textContent = statistics.pendingMaintenances || 0;
+    document.getElementById('completedMaintenances').textContent = statistics.completedMaintenances || 0;
+    document.getElementById('totalCost').textContent = formatPrice(statistics.totalCost || 0);
+}
+
 // Load maintenances from API
 async function loadMaintenances(page = 0, search = '', status = 'all', type = 'all') {
     try {
@@ -127,7 +168,7 @@ async function loadMaintenances(page = 0, search = '', status = 'all', type = 'a
             // Update filteredMaintenances for client-side operations if needed
             filteredMaintenances = [...maintenances];
 
-            updateMetrics();
+            // Note: Metrics are now loaded separately via loadMaintenanceStatistics()
             renderMaintenances();
             updatePaginationControls();
         } else {
@@ -149,7 +190,7 @@ async function loadMaintenances(page = 0, search = '', status = 'all', type = 'a
         filteredMaintenances = [];
         totalPages = 1;
         totalElements = 0;
-        updateMetrics();
+        // Note: Metrics are now loaded separately via loadMaintenanceStatistics()
         renderMaintenances();
         updatePaginationControls();
     }
@@ -372,7 +413,8 @@ async function deleteMaintenance(id) {
             // Remove from local arrays only after successful API deletion
             maintenances = maintenances.filter(maintenance => maintenance.id !== id);
             filteredMaintenances = filteredMaintenances.filter(maintenance => maintenance.id !== id);
-            updateMetrics();
+            // Note: General statistics are updated via loadMaintenanceStatistics() after operations
+            loadMaintenanceStatistics(); // Refresh general statistics after deletion
             renderMaintenances();
         } else {
             console.error('Failed to delete maintenance - Status:', response.status);
@@ -448,11 +490,12 @@ async function saveMaintenance(event) {
             }
         }
 
-        // Reload the table to reflect changes
+        // Reload the table and refresh general statistics to reflect changes
         const searchTerm = searchInput.value;
         const statusValue = statusFilter.value;
         const typeValue = typeFilter.value;
         loadMaintenances(currentPage, searchTerm, statusValue, typeValue);
+        loadMaintenanceStatistics(); // Refresh general statistics after save
         closeModal();
     } catch (error) {
         console.error('Error saving maintenance:', error);
@@ -541,11 +584,12 @@ async function uploadReceipt() {
         if (response.ok) {
             alert('Recibo subido exitosamente');
 
-            // Reload the maintenances to reflect changes
+            // Reload the maintenances and refresh general statistics to reflect changes
             const searchTerm = searchInput.value;
             const statusValue = statusFilter.value;
             const typeValue = typeFilter.value;
             loadMaintenances(currentPage, searchTerm, statusValue, typeValue);
+            loadMaintenanceStatistics(); // Refresh general statistics after receipt upload
             closeReceiptModal();
         } else {
             const error = response.statusText || 'Error desconocido';

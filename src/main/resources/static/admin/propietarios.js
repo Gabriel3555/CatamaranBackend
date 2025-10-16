@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     setupEventListeners();
     loadOwners();
+    loadOwnersStats(); // Load general stats
 
     // Add cache busting parameter to avoid cached JS
     console.log('Page loaded at:', new Date().toISOString());
@@ -76,6 +77,24 @@ function formatBoatType(type) {
         'DISENO_EXCLUSIVO': 'Diseño Exclusivo'
     };
     return typeMap[type] || type;
+}
+
+// Load owners general stats from API
+async function loadOwnersStats() {
+    try {
+        const response = await fetch('/api/v1/admin/owners/stats', {
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            const stats = await response.json();
+            updateMetrics(stats);
+        } else {
+            console.error('Failed to load owners stats - Status:', response.status);
+        }
+    } catch (error) {
+        console.error('Error loading owners stats:', error);
+    }
 }
 
 // Load owners from API
@@ -136,11 +155,22 @@ async function loadOwners(page = 0, search = '', status = 'all', role = 'all') {
 
 
 // Update metrics cards
-function updateMetrics() {
-    const totalOwners = owners.length;
-    const activeOwners = owners.filter(owner => owner.status === true).length;
-    const inactiveOwners = owners.filter(owner => owner.status === false).length;
-    const ownersWithBoats = owners.filter(owner => owner.boatsCount && owner.boatsCount > 0).length;
+function updateMetrics(stats = null) {
+    let totalOwners, activeOwners, inactiveOwners, ownersWithBoats;
+
+    if (stats) {
+        // Use provided general stats
+        totalOwners = stats.totalOwners;
+        activeOwners = stats.activeOwners;
+        inactiveOwners = stats.inactiveOwners;
+        ownersWithBoats = stats.ownersWithBoats;
+    } else {
+        // Fallback to calculating from current filtered data (for backward compatibility)
+        totalOwners = owners.length;
+        activeOwners = owners.filter(owner => owner.status === true).length;
+        inactiveOwners = owners.filter(owner => owner.status === false).length;
+        ownersWithBoats = owners.filter(owner => owner.boatsCount && owner.boatsCount > 0).length;
+    }
 
     document.getElementById('totalOwners').textContent = totalOwners;
     document.getElementById('activeOwners').textContent = activeOwners;
@@ -178,6 +208,9 @@ function changePage(page) {
     const statusValue = statusFilter ? statusFilter.value : 'all';
     const roleValue = roleFilter ? roleFilter.value : 'all';
     loadOwners(page, searchTerm, statusValue, roleValue);
+
+    // Also reload general stats to ensure they remain consistent
+    loadOwnersStats();
 }
 
 // Filter owners based on search and filters
@@ -188,6 +221,9 @@ function filterOwners() {
 
     // Reload data with filters applied server-side
     loadOwners(0, searchTerm, statusValue, roleValue);
+
+    // Also reload general stats to ensure they remain consistent
+    loadOwnersStats();
 }
 
 // Render owners in the table
@@ -283,6 +319,7 @@ async function toggleOwnerStatus(id) {
 
         if (response.ok) {
             loadOwners(); // Reload to ensure table reflects latest server data
+            loadOwnersStats(); // Reload general stats
         } else {
             console.error('Failed to update owner status');
         }
@@ -308,6 +345,7 @@ async function deleteOwner(id) {
 
         if (response.ok) {
             loadOwners(); // Reload to ensure table reflects latest server data
+            loadOwnersStats(); // Reload general stats
         } else {
             console.error('Failed to delete owner');
             alert('Error al eliminar el propietario');
@@ -349,6 +387,7 @@ async function saveOwner(event) {
 
             if (response.ok) {
                 loadOwners(); // Reload to ensure table reflects latest server data
+                loadOwnersStats(); // Reload general stats
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Failed to update owner:', errorData);
@@ -365,6 +404,7 @@ async function saveOwner(event) {
 
             if (response.ok) {
                 loadOwners(); // Reload to ensure table reflects latest server data
+                loadOwnersStats(); // Reload general stats
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Failed to create owner:', errorData);

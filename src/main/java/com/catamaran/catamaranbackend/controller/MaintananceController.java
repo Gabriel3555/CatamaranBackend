@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/v1/maintenances")
@@ -65,6 +67,12 @@ public class MaintananceController {
         }
 
         maintenance.setBoat(boatOpt.get());
+
+        // Set default scheduled date to current date if not provided
+        if (maintenance.getDateScheduled() == null) {
+            maintenance.setDateScheduled(LocalDateTime.now());
+        }
+
         MaintananceEntity savedMaintenance = maintananceRepository.save(maintenance);
 
         // Crear el pago automáticamente
@@ -115,5 +123,31 @@ public class MaintananceController {
         }
         maintananceRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Object>> getMaintenanceStatistics() {
+        try {
+            long totalMaintenances = maintananceRepository.count();
+            long pendingMaintenances = maintananceRepository.countByStatus(MaintananceStatus.PROGRAMADO);
+            long completedMaintenances = maintananceRepository.countByStatus(MaintananceStatus.COMPLETADO);
+            Double totalCost = maintananceRepository.sumTotalCost();
+
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("totalMaintenances", totalMaintenances);
+            statistics.put("pendingMaintenances", pendingMaintenances);
+            statistics.put("completedMaintenances", completedMaintenances);
+            statistics.put("totalCost", totalCost != null ? totalCost : 0.0);
+
+            return ResponseEntity.ok(statistics);
+        } catch (Exception e) {
+            // Log the error in a real application
+            Map<String, Object> errorStats = new HashMap<>();
+            errorStats.put("totalMaintenances", 0);
+            errorStats.put("pendingMaintenances", 0);
+            errorStats.put("completedMaintenances", 0);
+            errorStats.put("totalCost", 0.0);
+            return ResponseEntity.ok(errorStats);
+        }
     }
 }

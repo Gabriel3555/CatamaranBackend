@@ -8,6 +8,12 @@ let currentPage = 0;
 let totalPages = 0;
 let totalElements = 0;
 let pageSize = 10;
+let generalStatistics = {
+    totalPayments: 0,
+    totalAmount: 0,
+    monthlyAmount: 0,
+    activePayers: 0
+};
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
@@ -26,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadBoats();
     loadPayments();
+    loadGeneralStatistics();
 
     // Add cache busting parameter to avoid cached JS
     console.log('Page loaded at:', new Date().toISOString());
@@ -96,6 +103,28 @@ function populateBoatSelect() {
     });
 }
 
+// Load general statistics from API
+async function loadGeneralStatistics() {
+    try {
+        console.log('Loading general payment statistics...');
+        const response = await fetch('/api/v1/payments/statistics', {
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            generalStatistics = await response.json();
+            console.log('Loaded general statistics:', generalStatistics);
+            updateMetrics();
+        } else {
+            console.error('Failed to load general statistics - Status:', response.status);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+        }
+    } catch (error) {
+        console.error('Error loading general statistics:', error);
+    }
+}
+
 
 // Load payments from API
 async function loadPayments(page = 0, search = '', reason = 'all', month = 'all', status = 'all') {
@@ -157,31 +186,13 @@ async function loadPayments(page = 0, search = '', reason = 'all', month = 'all'
 
 // Update metrics cards
 function updateMetrics() {
-    // For metrics, we need all payments, not just current page
-    // This is a limitation - ideally backend should provide aggregated data
-    // For now, we'll use the current page data for calculations
-    const totalPayments = totalElements;
-    const totalAmount = payments.reduce((sum, payment) => sum + (payment.mount || 0), 0);
+    // Use general statistics that are always constant regardless of filters or pagination
+    document.getElementById('totalPayments').textContent = generalStatistics.totalPayments;
+    document.getElementById('totalAmount').textContent = formatPrice(generalStatistics.totalAmount);
+    document.getElementById('monthlyPayments').textContent = formatPrice(generalStatistics.monthlyAmount);
+    document.getElementById('activePayers').textContent = generalStatistics.activePayers;
 
-    // Calculate current month payments (same logic as backend)
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-based
-
-    const monthlyPayments = payments
-        .filter(payment => {
-            const paymentDate = new Date(payment.date);
-            return paymentDate.getFullYear() === currentYear &&
-                   paymentDate.getMonth() === currentMonth;
-        })
-        .reduce((sum, payment) => sum + (payment.mount || 0), 0);
-
-    const activePayers = new Set(payments.map(payment => payment.boat && payment.boat.owner ? payment.boat.owner.id : null).filter(id => id)).size;
-
-    document.getElementById('totalPayments').textContent = totalPayments;
-    document.getElementById('totalAmount').textContent = formatPrice(totalAmount);
-    document.getElementById('monthlyPayments').textContent = formatPrice(monthlyPayments);
-    document.getElementById('activePayers').textContent = activePayers;
+    console.log('Updated metrics with general statistics:', generalStatistics);
 }
 
 // Format price in Colombian pesos
@@ -356,7 +367,7 @@ async function savePayment(event) {
         date: new Date(formData.get('date')).toISOString(),
         reason: formData.get('reason'),
         status: 'POR_PAGAR',
-        boat: { id: parseInt(boatId) }
+        boatId: parseInt(boatId)
     };
 
     try {

@@ -25,6 +25,8 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 @RestController
@@ -136,6 +138,50 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Object>> getPaymentStatistics() {
+        // Obtener estadísticas generales sin filtros ni paginación
+        List<PaymentEntity> allPayments = paymentRepository.findAll();
+
+        // Calcular estadísticas generales
+        long totalPayments = allPayments.size();
+        double totalAmount = allPayments.stream()
+                .mapToDouble(payment -> payment.getMount() != null ? payment.getMount() : 0.0)
+                .sum();
+
+        // Calcular pagos del mes actual
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfMonth = now.withDayOfMonth(now.toLocalDate().lengthOfMonth())
+                                      .withHour(23).withMinute(59).withSecond(59);
+
+        double monthlyAmount = allPayments.stream()
+                .filter(payment -> {
+                    LocalDateTime paymentDate = payment.getDate();
+                    return paymentDate != null &&
+                           (paymentDate.isEqual(startOfMonth) || paymentDate.isAfter(startOfMonth)) &&
+                           (paymentDate.isEqual(endOfMonth) || paymentDate.isBefore(endOfMonth));
+                })
+                .mapToDouble(payment -> payment.getMount() != null ? payment.getMount() : 0.0)
+                .sum();
+
+        // Calcular pagadores activos (propietarios únicos con pagos)
+        long activePayers = allPayments.stream()
+                .filter(payment -> payment.getBoat() != null && payment.getBoat().getOwner() != null)
+                .map(payment -> payment.getBoat().getOwner().getId())
+                .distinct()
+                .count();
+
+        // Crear respuesta con estadísticas
+        Map<String, Object> statistics = new HashMap<>();
+        statistics.put("totalPayments", totalPayments);
+        statistics.put("totalAmount", totalAmount);
+        statistics.put("monthlyAmount", monthlyAmount);
+        statistics.put("activePayers", activePayers);
+
+        return ResponseEntity.ok(statistics);
+    }
+
     @GetMapping("/boat/{boatId}")
     public ResponseEntity<Page<PaymentEntity>> getByBoatId(
             @PathVariable Long boatId,
@@ -149,6 +195,16 @@ public class PaymentController {
 
     @PostMapping
     public ResponseEntity<PaymentEntity> createPayment(@RequestBody PaymentEntity payment) {
+        // If boatId is provided but boat is null, resolve the boat entity
+        if (payment.getBoat() == null && payment.getBoatId() != null) {
+            Optional<BoatEntity> boatOpt = boatRepository.findById(payment.getBoatId());
+            if (boatOpt.isPresent()) {
+                payment.setBoat(boatOpt.get());
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
         PaymentEntity savedPayment = paymentRepository.save(payment);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedPayment);
     }
