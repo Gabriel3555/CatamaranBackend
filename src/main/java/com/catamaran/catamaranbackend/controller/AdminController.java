@@ -137,11 +137,13 @@ public class AdminController {
     public ResponseEntity<Page<Map<String, Object>>> getUsersWithBoatCounts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status) {
 
         System.out.println("AdminController.getUsersWithBoatCounts called with filters:");
         System.out.println("  page: " + page + ", size: " + size);
         System.out.println("  search: " + search);
+        System.out.println("  status: " + status);
 
         // Get all owners first
         List<UserEntity> allOwners = userRepository.findAll().stream()
@@ -158,6 +160,15 @@ public class AdminController {
                         (user.getEmail() != null && user.getEmail().toLowerCase().contains(searchTerm)) ||
                         (user.getUsername() != null && user.getUsername().toLowerCase().contains(searchTerm))
                     )
+                    .collect(Collectors.toList());
+        }
+
+        // Apply status filter if provided
+        if (status != null && !status.equals("all")) {
+            System.out.println("Applying status filter: " + status);
+            boolean isActive = Boolean.parseBoolean(status);
+            allOwners = allOwners.stream()
+                    .filter(user -> user.getStatus() != null && user.getStatus() == isActive)
                     .collect(Collectors.toList());
         }
 
