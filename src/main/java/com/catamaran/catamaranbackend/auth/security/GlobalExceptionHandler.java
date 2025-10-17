@@ -70,7 +70,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGlobalException(
             Exception ex, WebRequest request) {
-        return buildErrorResponse("Error interno del servidor", HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR");
+
+        // Log the full stack trace
+        ex.printStackTrace();
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", "Error interno del servidor: " + ex.getMessage());
+        errorResponse.put("errorCode", "INTERNAL_ERROR");
+        errorResponse.put("status", 500);
+        errorResponse.put("timestamp", LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**

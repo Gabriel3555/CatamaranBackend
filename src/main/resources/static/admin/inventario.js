@@ -159,6 +159,7 @@ async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
                 console.error('Authentication failed - redirecting to login');
                 localStorage.removeItem('jwt');
                 localStorage.removeItem('userType');
+                localStorage.removeItem('username');
                 window.location.href = '../login.html';
                 return;
             }
@@ -167,6 +168,9 @@ async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
             if (response.status >= 500) {
                 console.error('Server error - showing error message');
                 alert('Error del servidor al cargar las embarcaciones. Inténtalo de nuevo.');
+            } else if (response.status >= 400) {
+                console.error('Client error - Status:', response.status, response.statusText);
+                alert(`Error al cargar las embarcaciones: ${response.status} ${response.statusText}`);
             }
 
             boats = [];
@@ -238,7 +242,18 @@ async function loadGeneralMetrics() {
             allBoats = data.content || [];
             console.log('Loaded general metrics data:', allBoats.length, 'boats');
         } else {
-            console.error('Failed to load general metrics - Status:', response.status);
+            console.error('Failed to load general metrics - Status:', response.status, response.statusText);
+
+            // Handle authentication errors
+            if (response.status === 401 || response.status === 403) {
+                console.error('Authentication failed for metrics - redirecting to login');
+                localStorage.removeItem('jwt');
+                localStorage.removeItem('userType');
+                localStorage.removeItem('username');
+                window.location.href = '../login.html';
+                return;
+            }
+
             // Fallback to current boats data if general load fails
             allBoats = [...boats];
             console.log('Using fallback boats data for metrics:', allBoats.length, 'boats');

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
@@ -291,62 +292,127 @@ public class BoatController {
     }
 
     @PutMapping("/{boatId}/owner/{ownerId}")
+    @Transactional
     public ResponseEntity<BoatEntity> assignOwner(
             @PathVariable Long boatId,
             @PathVariable Long ownerId,
             @RequestParam double installmentAmount,
             @RequestParam int frequency) {
 
-        Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
-        if (boatOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        Optional<UserEntity> ownerOpt = userRepository.findById(ownerId);
-        if (ownerOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        BoatEntity boat = boatOpt.get();
-        UserEntity owner = ownerOpt.get();
-
-        // Check if boat already has an owner
-        if (boat.getOwner() != null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        // Validate parameters
-        if (installmentAmount <= 0 || frequency < 1 || frequency > 11) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        // Calculate number of installments
-        double boatPrice = boat.getPrice() != null ? boat.getPrice() : 0.0;
-        int numberOfInstallments = (int) Math.ceil(boatPrice / installmentAmount);
-
-        // Assign owner to boat
-        boat.setOwner(owner);
-        BoatEntity savedBoat = boatRepository.save(boat);
-
-        // Create payment records
-        LocalDateTime currentDate = LocalDateTime.now();
-        for (int i = 0; i < numberOfInstallments; i++) {
-            double currentInstallmentAmount = installmentAmount;
-            if (i == numberOfInstallments - 1) {
-                // Last installment: adjust to the remaining amount
-                double totalPaid = (numberOfInstallments - 1) * installmentAmount;
-                currentInstallmentAmount = boatPrice - totalPaid;
+        try {
+            // Validate parameters first
+            if (installmentAmount <= 0) {
+                System.err.println("Invalid installment amount: " + installmentAmount);
+                return ResponseEntity.badRequest().build();
             }
-            PaymentEntity payment = PaymentEntity.builder()
-                    .mount(currentInstallmentAmount)
-                    .date(currentDate.plusMonths(i * frequency))
-                    .reason(ReasonPayment.PAGO)
-                    .status(PaymentStatus.POR_PAGAR)
-                    .boat(savedBoat)
-                    .build();
-            paymentRepository.save(payment);
-        }
 
-        return ResponseEntity.ok(savedBoat);
+            if (frequency < 1 || frequency > 11) {
+                System.err.println("Invalid frequency: " + frequency);
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Find boat
+            Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
+            if (boatOpt.isEmpty()) {
+                System.err.println("Boat not found: " + boatId);
+                return ResponseEntity.notFound().build();
+            }
+
+            // Find owner
+            Optional<UserEntity> ownerOpt = userRepository.findById(ownerId);
+            if (ownerOpt.isEmpty()) {
+                System.err.println("Owner not found: " + ownerId);
+                return ResponseEntity.notFound().build();
+            }
+
+            BoatEntity boat = boatOpt.get();
+            UserEntity owner = ownerOpt.get();
+
+            // Check if boat already has an owner
+            if (boat.getOwner() != null) {
+                System.err.println("Boat already has an owner: " + boatId);
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Validate boat price
+            double boatPrice = boat.getPrice() != null ? boat.getPrice() : 0.0;
+            if (boatPrice <= 0) {
+                System.err.println("Invalid boat price: " + boatPrice);
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Calculate number of installments
+            int numberOfInstallments = (int) Math.ceil(boatPrice / installmentAmount);
+            if (numberOfInstallments <= 0) {
+                numberOfInstallments = 1;
+            }
+
+            System.out.println("Assigning owner to boat:");
+            System.out.println("  Boat ID: " + boatId);
+            System.out.println("  Owner ID: " + ownerId);
+            System.out.println("  Boat Price: " + boatPrice);
+            System.out.println("  Installment Amount: " + installmentAmount);
+            System.out.println("  Frequency: " + frequency);
+            System.out.println("  Number of Installments: " + numberOfInstallments);
+
+            // Assign owner to boat
+            boat.setOwner(owner);
+
+            // Ensure balance is set
+            if (boat.getBalance() == null) {
+                boat.setBalance(0.0);
+            }
+
+            // Save boat first
+            BoatEntity savedBoat = boatRepository.save(boat);
+            System.out.println("Boat saved with owner");
+
+            // Create payment records
+            LocalDateTime currentDate = LocalDateTime.now();
+            List<PaymentEntity> payments = new ArrayList<>();
+
+            for (int i = 0; i < numberOfInstallments; i++) {
+                double currentInstallmentAmount = installmentAmount;
+
+                // Last installment: adjust to the remaining amount
+                if (i == numberOfInstallments - 1) {
+                    double totalPaid = (numberOfInstallments - 1) * installmentAmount;
+                    currentInstallmentAmount = boatPrice - totalPaid;
+                }
+
+                // Ensure installment amount is valid
+                if (currentInstallmentAmount <= 0) {
+                    currentInstallmentAmount = installmentAmount;
+                }
+
+                LocalDateTime paymentDate = currentDate.plusMonths((long) i * frequency);
+
+                PaymentEntity payment = PaymentEntity.builder()
+                        .mount(currentInstallmentAmount)
+                        .date(paymentDate)
+                        .reason(ReasonPayment.PAGO)
+                        .status(PaymentStatus.POR_PAGAR)
+                        .boat(savedBoat)
+                        .build();
+
+                payments.add(payment);
+
+                System.out.println("  Payment " + (i + 1) + ": " + currentInstallmentAmount + " on " + paymentDate);
+            }
+
+            // Save all payments using the inherited saveAll method
+            paymentRepository.saveAll(payments);
+            System.out.println("All payments saved successfully");
+
+            return ResponseEntity.ok(savedBoat);
+
+        } catch (Exception e) {
+            // Log the detailed error
+            System.err.println("Error in assignOwner: " + e.getMessage());
+            e.printStackTrace();
+
+            // Return internal server error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

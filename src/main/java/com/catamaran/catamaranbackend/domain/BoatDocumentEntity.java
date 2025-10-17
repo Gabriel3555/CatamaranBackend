@@ -21,7 +21,7 @@ public class BoatDocumentEntity {
 
     private String url;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "boat_id")
     private BoatEntity boat;
 }

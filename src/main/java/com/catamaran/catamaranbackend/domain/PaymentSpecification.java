@@ -22,10 +22,6 @@ public class PaymentSpecification {
         }
     }
 
-    /**
-     * Specification for search term filter
-     * Searches in owner name, email, or invoice_url
-     */
     public static Specification<PaymentEntity> hasSearchTerm(String searchTerm) {
         return (root, query, criteriaBuilder) -> {
             String searchPattern = "%" + searchTerm.toLowerCase() + "%";
@@ -51,14 +47,10 @@ public class PaymentSpecification {
                 "%" + searchTerm.toLowerCase() + "%"
             ));
 
-            // Search in boat name using LEFT JOIN with FETCH to avoid lazy loading issues
             try {
                 jakarta.persistence.criteria.Join<PaymentEntity, BoatEntity> boatJoin =
                     root.join("boat", jakarta.persistence.criteria.JoinType.LEFT);
 
-                // Join owner for search purposes (don't fetch since we don't need it in results)
-
-                // Search in boat name (only if boat exists)
                 predicates.add(criteriaBuilder.like(
                     criteriaBuilder.lower(
                         criteriaBuilder.coalesce(boatJoin.get("name"), "")
@@ -66,11 +58,9 @@ public class PaymentSpecification {
                     searchPattern
                 ));
 
-                // Search in boat owner information using join
                 jakarta.persistence.criteria.Join<BoatEntity, UserEntity> ownerJoin =
                     boatJoin.join("owner", jakarta.persistence.criteria.JoinType.LEFT);
 
-                // Search in owner full name (only if owner exists)
                 predicates.add(criteriaBuilder.like(
                     criteriaBuilder.lower(
                         criteriaBuilder.coalesce(ownerJoin.get("fullName"), "")
@@ -78,7 +68,6 @@ public class PaymentSpecification {
                     searchPattern
                 ));
 
-                // Search in owner email (only if owner exists)
                 predicates.add(criteriaBuilder.like(
                     criteriaBuilder.lower(
                         criteriaBuilder.coalesce(ownerJoin.get("email"), "")
@@ -87,11 +76,8 @@ public class PaymentSpecification {
                 ));
 
             } catch (Exception e) {
-                // If joins fail, continue with other searches
-                // This can happen if the entities have lazy loading issues
                 System.out.println("Warning: Could not create joins for search: " + e.getMessage());
                 e.printStackTrace();
-                // Don't rethrow the exception - just log it and continue with available searches
             }
 
             return criteriaBuilder.or(predicates.toArray(new Predicate[0]));
