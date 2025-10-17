@@ -29,20 +29,19 @@ public class BoatEntity {
     private String location;
     private Double price;
 
-    @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<MaintananceEntity> maintanances;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "document_id")
+    @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<BoatDocumentEntity> documents;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private UserEntity owner;
 
-    @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "boat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<PaymentEntity> payments;
 

@@ -37,10 +37,63 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkAuthentication() {
     const userType = localStorage.getItem('userType');
     const jwt = localStorage.getItem('jwt');
+    const username = localStorage.getItem('username');
 
-    if (!userType || userType !== 'admin' || !jwt) {
+    console.log('Checking authentication:', { userType, hasJwt: !!jwt, username });
+
+    if (!userType || userType !== 'admin') {
+        console.error('Authentication failed: Invalid or missing userType');
         window.location.href = '../login.html';
-        return;
+        return false;
+    }
+
+    if (!jwt) {
+        console.error('Authentication failed: Missing JWT token');
+        window.location.href = '../login.html';
+        return false;
+    }
+
+    if (!username) {
+        console.error('Authentication failed: Missing username');
+        window.location.href = '../login.html';
+        return false;
+    }
+
+    // Validate JWT token format
+    try {
+        const tokenParts = jwt.split('.');
+        if (tokenParts.length !== 3) {
+            console.error('Authentication failed: Invalid JWT format');
+            localStorage.removeItem('jwt');
+            localStorage.removeItem('userType');
+            localStorage.removeItem('username');
+            window.location.href = '../login.html';
+            return false;
+        }
+
+        // Decode and check expiration
+        const payload = JSON.parse(atob(tokenParts[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+
+        if (payload.exp && payload.exp < currentTime) {
+            console.error('Authentication failed: JWT token expired');
+            localStorage.removeItem('jwt');
+            localStorage.removeItem('userType');
+            localStorage.removeItem('username');
+            window.location.href = '../login.html';
+            return false;
+        }
+
+        console.log('Authentication successful for user:', username);
+        return true;
+
+    } catch (error) {
+        console.error('Authentication failed: Error validating JWT:', error);
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('userType');
+        localStorage.removeItem('username');
+        window.location.href = '../login.html';
+        return false;
     }
 }
 
@@ -73,9 +126,15 @@ async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
 
         console.log('Loading boats with URL:', url);
 
+        const headers = getAuthHeaders();
+        console.log('Authentication headers:', headers);
+
         const response = await fetch(url, {
-            headers: getAuthHeaders()
+            headers: headers
         });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (response.ok) {
             const data = await response.json();
@@ -89,28 +148,53 @@ async function loadBoats(page = 0, search = '', type = 'all', status = 'all') {
             console.log('Total elements:', totalElements);
 
             // Update metrics with general data (will load if needed)
-            updateMetrics();
+            await updateMetrics();
             renderBoats();
             updatePaginationControls();
         } else {
-            console.error('Failed to load boats - Status:', response.status);
+            console.error('Failed to load boats - Status:', response.status, response.statusText);
+
+            // Handle authentication errors
+            if (response.status === 401 || response.status === 403) {
+                console.error('Authentication failed - redirecting to login');
+                localStorage.removeItem('jwt');
+                localStorage.removeItem('userType');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            // Handle server errors
+            if (response.status >= 500) {
+                console.error('Server error - showing error message');
+                alert('Error del servidor al cargar las embarcaciones. Inténtalo de nuevo.');
+            }
+
             boats = [];
             filteredBoats = [];
             totalPages = 1;
             totalElements = 0;
             // Update metrics with general data (will load if needed)
-            updateMetrics();
+            await updateMetrics();
             renderBoats();
             updatePaginationControls();
         }
     } catch (error) {
         console.error('Error loading boats:', error);
+
+        // Handle network errors
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.error('Network error - server might not be running');
+            alert('Error de conexión. Verifica que el servidor esté ejecutándose.');
+        } else {
+            alert('Error inesperado al cargar las embarcaciones. Revisa la consola para más detalles.');
+        }
+
         boats = [];
         filteredBoats = [];
         totalPages = 1;
         totalElements = 0;
         // Update metrics with general data (will load if needed)
-        updateMetrics();
+        await updateMetrics();
         renderBoats();
         updatePaginationControls();
     }
@@ -144,6 +228,7 @@ async function loadOwners() {
 // Load all boats for general metrics (without filters)
 async function loadGeneralMetrics() {
     try {
+        console.log('Loading general metrics data...');
         const response = await fetch(`/api/v1/boat?page=0&size=1000`, {
             headers: getAuthHeaders()
         });
@@ -154,39 +239,65 @@ async function loadGeneralMetrics() {
             console.log('Loaded general metrics data:', allBoats.length, 'boats');
         } else {
             console.error('Failed to load general metrics - Status:', response.status);
-            allBoats = [];
+            // Fallback to current boats data if general load fails
+            allBoats = [...boats];
+            console.log('Using fallback boats data for metrics:', allBoats.length, 'boats');
         }
     } catch (error) {
         console.error('Error loading general metrics:', error);
-        allBoats = [];
+        // Fallback to current boats data if general load fails
+        allBoats = [...boats];
+        console.log('Using fallback boats data for metrics after error:', allBoats.length, 'boats');
     }
 }
 
 
 // Update metrics cards (always shows general data, not filtered data)
 async function updateMetrics() {
-    // Always use general data for metrics, load if not available
-    if (allBoats.length === 0) {
-        await loadGeneralMetrics();
+    try {
+        // Always use general data for metrics, load if not available
+        if (allBoats.length === 0) {
+            await loadGeneralMetrics();
+        }
+
+        const metricsBoats = allBoats.length > 0 ? allBoats : boats; // Use allBoats if available, fallback to boats
+        const totalBoats = metricsBoats.length;
+        const availableBoats = metricsBoats.filter(boat => !boat.owner).length; // Available if no owner assigned
+        const maintenanceBoats = 0; // For now, no maintenance status tracking
+        const ownedBoats = metricsBoats.filter(boat => boat.owner).length;
+
+        // Update DOM elements with new values
+        const totalBoatsEl = document.getElementById('totalBoats');
+        const availableBoatsEl = document.getElementById('availableBoats');
+        const maintenanceBoatsEl = document.getElementById('maintenanceBoats');
+        const ownedBoatsEl = document.getElementById('ownedBoats');
+
+        if (totalBoatsEl) totalBoatsEl.textContent = totalBoats;
+        if (availableBoatsEl) availableBoatsEl.textContent = availableBoats;
+        if (maintenanceBoatsEl) maintenanceBoatsEl.textContent = maintenanceBoats;
+        if (ownedBoatsEl) ownedBoatsEl.textContent = ownedBoats;
+
+        console.log('Updated metrics - Total:', totalBoats, 'Available:', availableBoats, 'Owned:', ownedBoats);
+    } catch (error) {
+        console.error('Error updating metrics:', error);
+        // Fallback to local boats data if general metrics fail
+        const totalBoats = boats.length;
+        const availableBoats = boats.filter(boat => !boat.owner).length;
+        const maintenanceBoats = 0;
+        const ownedBoats = boats.filter(boat => boat.owner).length;
+
+        document.getElementById('totalBoats').textContent = totalBoats;
+        document.getElementById('availableBoats').textContent = availableBoats;
+        document.getElementById('maintenanceBoats').textContent = maintenanceBoats;
+        document.getElementById('ownedBoats').textContent = ownedBoats;
+
+        console.log('Updated metrics with fallback data - Total:', totalBoats, 'Available:', availableBoats, 'Owned:', ownedBoats);
     }
-
-    const metricsBoats = allBoats.length > 0 ? allBoats : boats; // Use allBoats if available, fallback to boats
-    const totalBoats = metricsBoats.length;
-    const availableBoats = metricsBoats.filter(boat => !boat.owner).length; // Available if no owner assigned
-    const maintenanceBoats = 0; // For now, no maintenance status tracking
-    const ownedBoats = metricsBoats.filter(boat => boat.owner).length;
-
-    document.getElementById('totalBoats').textContent = totalBoats;
-    document.getElementById('availableBoats').textContent = availableBoats;
-    document.getElementById('maintenanceBoats').textContent = maintenanceBoats;
-    document.getElementById('ownedBoats').textContent = ownedBoats;
-
-    console.log('Updated metrics - Total:', totalBoats, 'Available:', availableBoats, 'Owned:', ownedBoats);
 }
 
 // Filter boats based on search and filters
 function filterBoats() {
-    const searchTerm = searchInput.value;
+    const searchTerm = searchInput.value.trim();
     const typeValue = typeFilter.value;
     const statusValue = statusFilter.value;
 
@@ -412,13 +523,15 @@ async function deleteBoat(id) {
             const typeValue = typeFilter.value;
             const statusValue = statusFilter.value;
             loadBoats(currentPage, searchTerm, typeValue, statusValue);
-            loadGeneralMetrics(); // Also reload general metrics data
+            // Reload general metrics data and update metrics sequentially
+            await loadGeneralMetrics(); // Also reload general metrics data
+            updateMetrics(); // Update the statistics display
         } else {
             console.error('Failed to delete boat');
             // Fallback to local deletion
             boats = boats.filter(boat => boat.id !== id);
             filteredBoats = filteredBoats.filter(boat => boat.id !== id);
-            updateMetrics();
+            updateMetrics(); // Update statistics after local deletion
             renderBoats();
             updatePaginationControls();
         }
@@ -487,7 +600,8 @@ async function saveBoat(event) {
                 name: boatData.name,
                 model: boatData.model,
                 location: boatData.location,
-                price: parseFloat(boatData.price) || 0
+                price: parseFloat(boatData.price) || 0,
+                balance: 0.0
             };
 
             const response = await fetch('/api/v1/boat', {
@@ -510,7 +624,10 @@ async function saveBoat(event) {
         const typeValue = typeFilter.value;
         const statusValue = statusFilter.value;
         loadBoats(currentPage, searchTerm, typeValue, statusValue);
-        loadGeneralMetrics(); // Also reload general metrics data
+
+        // Reload general metrics data and update metrics sequentially
+        await loadGeneralMetrics(); // Also reload general metrics data
+        updateMetrics(); // Update the statistics display
         closeModal();
     } catch (error) {
         console.error('Error saving boat:', error);
@@ -530,7 +647,7 @@ async function saveBoat(event) {
             boats.push(newBoat);
         }
         filteredBoats = [...boats];
-        updateMetrics();
+        updateMetrics(); // Update statistics after local modification
         renderBoats();
         closeModal();
     }
@@ -574,7 +691,9 @@ async function confirmAssignOwner(boatId) {
                 const typeValue = typeFilter.value;
                 const statusValue = statusFilter.value;
                 loadBoats(currentPage, searchTerm, typeValue, statusValue);
-                loadGeneralMetrics(); // Also reload general metrics data
+                // Reload general metrics data and update metrics sequentially
+                await loadGeneralMetrics(); // Also reload general metrics data
+                updateMetrics(); // Update the statistics display
                 closeOwnerModal();
                 alert('Propietario asignado exitosamente');
             } catch (jsonError) {

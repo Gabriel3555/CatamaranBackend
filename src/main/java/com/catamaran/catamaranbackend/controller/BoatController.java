@@ -56,11 +56,34 @@ public class BoatController {
     @GetMapping
     public ResponseEntity<Page<BoatEntity>> getAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "all") String type,
+            @RequestParam(defaultValue = "all") String status) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        Page<BoatEntity> boats = boatRepository.findAll(pageable);
-        return ResponseEntity.ok(boats);
+        try {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+            // Convert string type to enum, handling "all" case
+            BoatType boatType = null;
+            if (!"all".equals(type)) {
+                try {
+                    boatType = BoatType.valueOf(type.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+
+            // Use the proper filtering method from the repository
+              Page<BoatEntity> boats = boatRepository.findWithFilters(search, boatType, status, pageable);
+
+            return ResponseEntity.ok(boats);
+        } catch (Exception e) {
+            // Log the actual error for debugging
+            System.err.println("Error in BoatController.getAll: " + e.getMessage());
+            e.printStackTrace();
+            throw e; // Re-throw to be handled by GlobalExceptionHandler
+        }
     }
 
     @PostMapping

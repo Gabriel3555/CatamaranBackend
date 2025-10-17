@@ -12,12 +12,14 @@
 .pagination-info {
     color: #6b7280;
     font-size: 14px;
+    margin-left: 20px;
 }
 
 .pagination-controls {
     display: flex;
     gap: 5px;
     align-items: center;
+    margin-right: 20px;
 }
 
 .pagination-btn {
