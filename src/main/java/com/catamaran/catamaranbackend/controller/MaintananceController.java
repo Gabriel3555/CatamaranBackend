@@ -3,12 +3,14 @@ package com.catamaran.catamaranbackend.controller;
 import com.catamaran.catamaranbackend.domain.*;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import com.catamaran.catamaranbackend.repository.MaintananceRepository;
+import com.catamaran.catamaranbackend.repository.MaintananceSpecifications;
 import com.catamaran.catamaranbackend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,10 +40,44 @@ public class MaintananceController {
     @GetMapping
     public ResponseEntity<Page<MaintananceEntity>> getAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) MaintananceStatus status,
+            @RequestParam(required = false) MaintananceType type) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        Page<MaintananceEntity> maintenances = maintananceRepository.findAll(pageable);
+
+        // Build specification for filtering
+        Specification<MaintananceEntity> spec = null;
+
+        if (search != null && !search.trim().isEmpty()) {
+            spec = MaintananceSpecifications.hasSearchTerm(search);
+        }
+
+        if (status != null) {
+            if (spec == null) {
+                spec = MaintananceSpecifications.hasStatus(status);
+            } else {
+                spec = spec.and(MaintananceSpecifications.hasStatus(status));
+            }
+        }
+
+        if (type != null) {
+            if (spec == null) {
+                spec = MaintananceSpecifications.hasType(type);
+            } else {
+                spec = spec.and(MaintananceSpecifications.hasType(type));
+            }
+        }
+
+        Page<MaintananceEntity> maintenances;
+        if (spec == null) {
+            // If no filters are applied, use the original method
+            maintenances = maintananceRepository.findAll(pageable);
+        } else {
+            maintenances = maintananceRepository.findAll(spec, pageable);
+        }
+
         return ResponseEntity.ok(maintenances);
     }
 
