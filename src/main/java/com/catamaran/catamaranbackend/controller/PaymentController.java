@@ -133,11 +133,17 @@ public class PaymentController {
             System.out.println("Date filter applied");
         }
 
-        // Execute query with combined specifications
-        Page<PaymentEntity> payments = paymentRepository.findAll(spec, pageable);
-        System.out.println("Combined filters returned " + payments.getTotalElements() + " payments");
+        try {
+            // Execute query with combined specifications
+            Page<PaymentEntity> payments = paymentRepository.findAll(spec, pageable);
+            System.out.println("Combined filters returned " + payments.getTotalElements() + " payments");
 
-        return ResponseEntity.ok(payments);
+            return ResponseEntity.ok(payments);
+        } catch (Exception e) {
+            System.err.println("Error executing payment query: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping("/statistics")
@@ -169,7 +175,8 @@ public class PaymentController {
 
         // Calcular pagadores activos (propietarios únicos con pagos)
         long activePayers = allPayments.stream()
-                .filter(payment -> payment.getBoat() != null && payment.getBoat().getOwner() != null)
+                .filter(payment -> payment.getBoat() != null)
+                .filter(payment -> payment.getBoat().getOwner() != null)
                 .map(payment -> payment.getBoat().getOwner().getId())
                 .distinct()
                 .count();

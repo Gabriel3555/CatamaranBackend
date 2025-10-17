@@ -247,7 +247,7 @@ public class OwnerController {
                 .map(payment -> {
                     Map<String, Object> paymentData = new HashMap<>();
                     paymentData.put("id", payment.getId());
-                    paymentData.put("boatName", payment.getBoat().getName());
+                    paymentData.put("boatName", payment.getBoat() != null ? payment.getBoat().getName() : "N/A");
                     paymentData.put("amount", payment.getMount());
                     paymentData.put("date", payment.getDate().toString());
                     paymentData.put("reason", payment.getReason() != null ? payment.getReason().name() : null);
@@ -362,7 +362,7 @@ public class OwnerController {
                 .map(payment -> {
                     Map<String, Object> paymentData = new HashMap<>();
                     paymentData.put("id", payment.getId());
-                    paymentData.put("boatName", payment.getBoat().getName());
+                    paymentData.put("boatName", payment.getBoat() != null ? payment.getBoat().getName() : "N/A");
                     paymentData.put("amount", payment.getMount());
                     paymentData.put("date", payment.getDate().toString());
                     paymentData.put("reason", payment.getReason() != null ? payment.getReason().name() : null);
