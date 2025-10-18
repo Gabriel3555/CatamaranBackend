@@ -415,4 +415,62 @@ public class BoatController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @PutMapping("/{boatId}/owner/{ownerId}/manual")
+    @Transactional
+    public ResponseEntity<BoatEntity> assignOwnerManual(
+            @PathVariable Long boatId,
+            @PathVariable Long ownerId) {
+
+        try {
+            // Find boat
+            Optional<BoatEntity> boatOpt = boatRepository.findById(boatId);
+            if (boatOpt.isEmpty()) {
+                System.err.println("Boat not found: " + boatId);
+                return ResponseEntity.notFound().build();
+            }
+
+            // Find owner
+            Optional<UserEntity> ownerOpt = userRepository.findById(ownerId);
+            if (ownerOpt.isEmpty()) {
+                System.err.println("Owner not found: " + ownerId);
+                return ResponseEntity.notFound().build();
+            }
+
+            BoatEntity boat = boatOpt.get();
+            UserEntity owner = ownerOpt.get();
+
+            // Check if boat already has an owner
+            if (boat.getOwner() != null) {
+                System.err.println("Boat already has an owner: " + boatId);
+                return ResponseEntity.badRequest().build();
+            }
+
+            System.out.println("Manually assigning owner to boat:");
+            System.out.println("  Boat ID: " + boatId);
+            System.out.println("  Owner ID: " + ownerId);
+
+            // Assign owner to boat (without creating payments)
+            boat.setOwner(owner);
+
+            // Ensure balance is set
+            if (boat.getBalance() == null) {
+                boat.setBalance(0.0);
+            }
+
+            // Save boat
+            BoatEntity savedBoat = boatRepository.save(boat);
+            System.out.println("Boat saved with owner (manual assignment - no payments created)");
+
+            return ResponseEntity.ok(savedBoat);
+
+        } catch (Exception e) {
+            // Log the detailed error
+            System.err.println("Error in assignOwnerManual: " + e.getMessage());
+            e.printStackTrace();
+
+            // Return internal server error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

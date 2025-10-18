@@ -484,6 +484,13 @@ async function assignOwner(boatId) {
                     </select>
                 </div>
                 <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="manualCheckbox">
+                        <span class="checkmark"></span>
+                        Manual
+                    </label>
+                </div>
+                <div class="form-group">
                     <label>Número de Cuotas Calculado</label>
                     <input type="text" id="calculatedInstallments" readonly style="background-color: #f5f5f5;">
                 </div>
@@ -671,33 +678,55 @@ async function saveBoat(event) {
 // Confirm owner assignment
 async function confirmAssignOwner(boatId) {
     const ownerSelect = document.getElementById('ownerSelect');
+    const manualCheckbox = document.getElementById('manualCheckbox');
     const installmentAmountInput = document.getElementById('installmentAmount');
     const frequencySelect = document.getElementById('frequency');
 
     const ownerId = ownerSelect.value;
-    const installmentAmount = parseFloat(installmentAmountInput.value);
-    const frequency = parseInt(frequencySelect.value);
+    const isManualAssignment = manualCheckbox && manualCheckbox.checked;
 
     if (!ownerId) {
         alert('Por favor selecciona un propietario');
         return;
     }
 
-    if (!installmentAmount || installmentAmount <= 0) {
-        alert('Por favor ingresa un monto de cuota válido');
-        return;
-    }
+    // If manual assignment is selected, no need to validate payment fields
+    if (!isManualAssignment) {
+        const installmentAmount = parseFloat(installmentAmountInput.value);
+        const frequency = parseInt(frequencySelect.value);
 
-    if (!frequency || frequency < 1 || frequency > 11) {
-        alert('Por favor selecciona una frecuencia válida');
-        return;
+        if (!installmentAmount || installmentAmount <= 0) {
+            alert('Por favor ingresa un monto de cuota válido');
+            return;
+        }
+
+        if (!frequency || frequency < 1 || frequency > 11) {
+            alert('Por favor selecciona una frecuencia válida');
+            return;
+        }
     }
 
     try {
-        const response = await fetch(`/api/v1/boat/${boatId}/owner/${ownerId}?installmentAmount=${installmentAmount}&frequency=${frequency}`, {
-            method: 'PUT',
-            headers: getAuthHeaders()
-        });
+        let response;
+        let url;
+
+        if (isManualAssignment) {
+            // Manual assignment - no payment creation
+            url = `/api/v1/boat/${boatId}/owner/${ownerId}/manual`;
+            response = await fetch(url, {
+                method: 'PUT',
+                headers: getAuthHeaders()
+            });
+        } else {
+            // Automatic assignment with payment creation
+            const installmentAmount = parseFloat(installmentAmountInput.value);
+            const frequency = parseInt(frequencySelect.value);
+            url = `/api/v1/boat/${boatId}/owner/${ownerId}?installmentAmount=${installmentAmount}&frequency=${frequency}`;
+            response = await fetch(url, {
+                method: 'PUT',
+                headers: getAuthHeaders()
+            });
+        }
 
         if (response.ok) {
             try {
@@ -710,7 +739,12 @@ async function confirmAssignOwner(boatId) {
                 await loadGeneralMetrics(); // Also reload general metrics data
                 updateMetrics(); // Update the statistics display
                 closeOwnerModal();
-                alert('Propietario asignado exitosamente');
+
+                if (isManualAssignment) {
+                    alert('Propietario asignado exitosamente (sin crear pagos automáticos)');
+                } else {
+                    alert('Propietario asignado exitosamente');
+                }
             } catch (jsonError) {
                 console.error('Error parsing JSON response:', jsonError);
                 alert('Error al procesar la respuesta del servidor');
