@@ -197,7 +197,7 @@ function renderPayments() {
             if (status === 'PAGADO') {
                 statusBadge = '<span class="status-badge status-completed">Pagado</span>';
             } else if (status === 'POR_PAGAR') {
-                statusBadge = '<span class="status-badge status-pending">Por pagar</span>';
+                statusBadge = '<span class="status-badge status-por-pagar">Por pagar</span>';
             }
 
             let invoiceLink = 'N/A';

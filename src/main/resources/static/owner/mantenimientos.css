@@ -1,0 +1,330 @@
+/* Owner Mantenimientos specific styles */
+
+/* Table Container */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.table-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-header h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#tableCount {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* Maintenance Table */
+.maintenance-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.maintenance-table thead {
+    background: #f9fafb;
+}
+
+.maintenance-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.maintenance-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #374151;
+}
+
+.maintenance-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* Status Badges for Maintenance */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-PROGRAMADO {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+
+.status-EN_PROCESO {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.status-COMPLETADO {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+/* Priority Badges */
+.priority-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.priority-ALTA {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.priority-MEDIA {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.priority-BAJA {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+
+/* Cost formatting */
+.cost {
+    font-weight: 600;
+    color: #059669;
+}
+
+/* Type badges */
+.type-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.type-PREVENTIVO {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #b3e5fc;
+}
+
+.type-CORRECTIVO {
+    background: #fef7cd;
+    color: #a16207;
+    border: 1px solid #fef3c7;
+}
+
+.type-PREDICTIVO {
+    background: #f3e8ff;
+    color: #7c3aed;
+    border: 1px solid #e9d5ff;
+}
+
+/* Filters Section */
+.filters-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px;
+    align-items: end;
+}
+
+.search-box {
+    display: flex;
+    gap: 8px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-btn {
+    padding: 8px 12px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.search-btn:hover {
+    background: #2563eb;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h2 {
+    margin: 0 0 8px 0;
+    color: #111827;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.page-header p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 16px;
+}
+
+/* Pagination */
+.pagination-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pagination-info {
+    color: #6b7280;
+    margin-left: 20px;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+    gap: 16px;
+}
+
+.pagination-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .table-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+
+    .maintenance-table {
+        font-size: 12px;
+    }
+
+    .maintenance-table th,
+    .maintenance-table td {
+        padding: 8px 12px;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .pagination-controls {
+        justify-content: center;
+    }
+
+    .page-header h2 {
+        font-size: 20px;
+    }
+
+    .page-header p {
+        font-size: 14px;
+    }
+}
