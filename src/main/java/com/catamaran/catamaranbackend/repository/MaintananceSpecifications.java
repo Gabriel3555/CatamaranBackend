@@ -52,4 +52,13 @@ public class MaintananceSpecifications {
             );
         };
     }
+
+    public static Specification<MaintananceEntity> belongsToOwner(Long ownerId) {
+        return (root, query, criteriaBuilder) -> {
+            if (ownerId == null) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.equal(root.get("boat").get("owner").get("id"), ownerId);
+        };
+    }
 }

@@ -6,6 +6,7 @@ import com.catamaran.catamaranbackend.domain.*;
 import com.catamaran.catamaranbackend.repository.BoatDocumentRepository;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import com.catamaran.catamaranbackend.repository.MaintananceRepository;
+import com.catamaran.catamaranbackend.repository.MaintananceSpecifications;
 import com.catamaran.catamaranbackend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -373,6 +376,50 @@ public class OwnerController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(paymentsData);
+    }
+
+    @GetMapping("/maintenances/{userId}")
+    public ResponseEntity<Page<MaintananceEntity>> getOwnerMaintenances(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) MaintananceStatus status,
+            @RequestParam(required = false) MaintananceType type) {
+
+        // Validate that the authenticated user is the owner and matches the requested userId
+        UserEntity authenticatedUser;
+        try {
+            authenticatedUser = validateOwnerAccess();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // Ensure the authenticated user can only access their own data
+        if (!authenticatedUser.getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // Create pageable
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        // Build specification for filtering
+        Specification<MaintananceEntity> spec = MaintananceSpecifications.belongsToOwner(userId);
+
+        if (search != null && !search.trim().isEmpty()) {
+            spec = spec.and(MaintananceSpecifications.hasSearchTerm(search));
+        }
+
+        if (status != null) {
+            spec = spec.and(MaintananceSpecifications.hasStatus(status));
+        }
+
+        if (type != null) {
+            spec = spec.and(MaintananceSpecifications.hasType(type));
+        }
+
+        Page<MaintananceEntity> maintenances = maintananceRepository.findAll(spec, pageable);
+        return ResponseEntity.ok(maintenances);
     }
 
     @GetMapping("/boats/{boatId}/documents")

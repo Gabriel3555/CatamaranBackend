@@ -219,11 +219,8 @@ function renderPayments() {
 
     document.getElementById('tableCount').textContent = `${filteredPayments.length} de ${payments.length} pagos`;
     
-    // Render pagination
-    const paginationContainer = document.getElementById('paginationContainer');
-    if (paginationContainer && paginator) {
-        paginationContainer.innerHTML = paginator.generatePaginationHTML('payments');
-    }
+    // Update pagination controls
+    updatePaginationControls();
 }
 
 // Logout function
@@ -239,6 +236,52 @@ function navigateTo(page) {
     window.location.href = `${page}.html`;
 }
 
+// Pagination functions
+function previousPage() {
+    if (paginator && paginator.previousPage()) {
+        renderPayments();
+    }
+}
+
+function nextPage() {
+    if (paginator && paginator.nextPage()) {
+        renderPayments();
+    }
+}
+
+function goToPage(pageNumber) {
+    if (paginator && paginator.goToPage(pageNumber)) {
+        renderPayments();
+    }
+}
+
+// Update pagination controls
+function updatePaginationControls() {
+    if (!paginator) return;
+
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('currentPageInfo');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    const info = paginator.getInfo();
+
+    // Update buttons
+    if (prevBtn) prevBtn.disabled = !info.hasPrevious;
+    if (nextBtn) nextBtn.disabled = !info.hasNext;
+
+    // Update page info
+    if (pageInfo) pageInfo.textContent = `Página ${info.currentPage} de ${info.totalPages}`;
+
+    // Update pagination info
+    if (paginationInfo) {
+        paginationInfo.textContent = `Mostrando ${info.startItem}-${info.endItem} de ${info.totalItems} pagos`;
+    }
+}
+
 // Export functions for HTML onclick handlers
 window.logout = logout;
 window.navigateTo = navigateTo;
+window.previousPage = previousPage;
+window.nextPage = nextPage;
+window.goToPage = goToPage;

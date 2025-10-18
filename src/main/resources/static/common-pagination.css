@@ -55,6 +55,14 @@
     color: #6b7280;
 }
 
+.page-info {
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 100px;
+    text-align: center;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .pagination-container {
