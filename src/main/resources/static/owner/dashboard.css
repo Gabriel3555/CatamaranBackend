@@ -629,6 +629,46 @@
     background: #047857;
 }
 
+/* Pagination positioning - ensure it stays below table */
+.table-container .pagination-container {
+    margin-top: 20px !important;
+    order: 2;
+    flex-direction: column;
+}
+
+.table-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.maintenance-table {
+    order: 1;
+}
+
+/* Pagination positioning - ensure it stays below table */
+.table-container .pagination-container {
+    order: 2;
+    margin-top: 20px !important;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 15px !important;
+}
+
+/* Ensure table always comes before pagination */
+.maintenance-table {
+    order: 1;
+}
+
+.maintenance-table + .pagination-container {
+    order: 2;
+    margin-top: 20px !important;
+}
+
+/* Override any conflicting styles that might put pagination above table */
+.table-container > .pagination-container {
+    margin-top: 20px !important;
+    order: 2 !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .header-content {

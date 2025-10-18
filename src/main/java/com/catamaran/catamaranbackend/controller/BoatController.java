@@ -164,6 +164,7 @@ public class BoatController {
             BoatDocumentEntity document = BoatDocumentEntity.builder()
                     .name(documentName)
                     .url(webUrl)
+                    .boat(boatOpt.get())
                     .build();
 
             BoatDocumentEntity savedDocument = boatDocumentRepository.save(document);

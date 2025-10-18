@@ -205,11 +205,55 @@
     </div>
 
     <script>
-        // Mostrar el nombre del usuario
-        document.getElementById('userFullName').textContent = localStorage.getItem('fullName') || 'Usuario';
+        // Common Admin JavaScript Functions
+        function getAuthHeaders() {
+            const jwt = localStorage.getItem('jwt');
+            return {
+                'Content-Type': 'application/json',
+                ...(jwt ? { 'Authorization': `Bearer ${jwt}` } : {})
+            };
+        }
+
+        function fetchCurrentUser() {
+            const fullName = localStorage.getItem('fullName');
+            const userInfoSpan = document.querySelector('.user-info span');
+            if (userInfoSpan && fullName) {
+                userInfoSpan.textContent = fullName;
+            }
+        }
+
+        function checkAuthentication() {
+            const userType = localStorage.getItem('userType');
+            const jwt = localStorage.getItem('jwt');
+            if (!userType || userType !== 'admin' || !jwt) {
+                window.location.href = '../login.html';
+                return;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('userType');
+            localStorage.removeItem('username');
+            localStorage.removeItem('jwt');
+            window.location.href = '../login.html';
+        }
+
+        // Export functions to window object
+        window.getAuthHeaders = getAuthHeaders;
+        window.fetchCurrentUser = fetchCurrentUser;
+        window.checkAuthentication = checkAuthentication;
+        window.logout = logout;
     </script>
-    <script src="common-admin.js"></script>
-    <script src="../common-pagination.js"></script>
     <script src="inventario.js"></script>
+    <script src="../common-pagination.js"></script>
+    <script>
+        // Mostrar el nombre del usuario
+        document.addEventListener('DOMContentLoaded', function() {
+            const userFullNameElement = document.getElementById('userFullName');
+            if (userFullNameElement) {
+                userFullNameElement.textContent = localStorage.getItem('fullName') || 'Usuario';
+            }
+        });
+    </script>
 </body>
 </html>

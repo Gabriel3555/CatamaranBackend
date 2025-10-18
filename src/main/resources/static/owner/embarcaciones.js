@@ -237,12 +237,16 @@ function openDocumentsModal(boatId) {
 function closeDocumentsModal() {
     document.getElementById('documentsModal').style.display = 'none';
     currentBoatId = null;
-    // Clear file input
-    document.getElementById('documentFile').value = '';
+    // Clear form
     document.getElementById('documentName').value = '';
+    document.getElementById('documentFile').value = '';
 }
 
+// Load documents for a boat
 async function loadBoatDocuments(boatId) {
+    const documentsList = document.getElementById('documentsList');
+    if (!documentsList) return;
+
     try {
         const response = await fetch(`/api/v1/owner/boats/${boatId}/documents`, {
             headers: getAuthHeaders()
@@ -250,51 +254,71 @@ async function loadBoatDocuments(boatId) {
 
         if (response.ok) {
             const documents = await response.json();
-            displayDocuments(documents);
+            displayDocuments(documents, boatId);
         } else {
-            showError('Error al cargar los documentos');
+            console.error('Failed to load documents');
+            documentsList.innerHTML = '<p class="no-documents">Error al cargar documentos</p>';
         }
     } catch (error) {
         console.error('Error loading documents:', error);
-        showError('Error de conexión');
+        documentsList.innerHTML = '<p class="no-documents">Error de conexión</p>';
     }
 }
 
-function displayDocuments(documents) {
+// Display documents list
+function displayDocuments(documents, boatId) {
     const documentsList = document.getElementById('documentsList');
+    if (!documentsList) return;
 
     if (documents.length === 0) {
-        documentsList.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No hay documentos para esta embarcación</p>';
+        documentsList.innerHTML = '<p class="no-documents">No hay documentos para esta embarcación</p>';
         return;
     }
 
-    documentsList.innerHTML = documents.map(doc => `
-        <div class="document-item">
-            <div class="document-info">
-                <span class="document-name">${doc.name}</span>
+    documentsList.innerHTML = documents.map(doc => {
+        // Extract just the filename from the URL
+        const filename = doc.url.split('/').pop();
+
+        return `
+            <div class="document-item">
+                <div class="document-info">
+                    <h5>${doc.name}</h5>
+                </div>
                 <div class="document-actions">
-                    <button onclick="viewDocument('${doc.url}')" class="view-btn">👁️ Ver</button>
-                    <button onclick="downloadDocument('${doc.url}', '${doc.name}')" class="download-btn">⬇️ Descargar</button>
-                    <button onclick="renameDocument(${doc.id}, '${doc.name}')" class="rename-btn">✏️ Renombrar</button>
-                    <button onclick="deleteDocument(${doc.id})" class="delete-btn">🗑️ Eliminar</button>
+                    <button onclick="viewDocument('${doc.url}')" class="btn-small">Ver</button>
+                    <button onclick="downloadDocument('${filename}', '${doc.name}')" class="btn-small">Descargar</button>
+                    <button onclick="editDocumentName(${boatId}, ${doc.id}, '${doc.name}')" class="btn-small">Editar</button>
+                    <button onclick="deleteDocument(${boatId}, ${doc.id})" class="btn-small delete">Eliminar</button>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
-// File upload handling
-document.getElementById('documentFile').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file && currentBoatId) {
-        const documentName = document.getElementById('documentName').value.trim() || file.name;
-        uploadDocument(currentBoatId, file, documentName);
-    }
-});
+// Upload document
+async function uploadDocument(boatId) {
+    const documentName = document.getElementById('documentName').value.trim();
+    const documentFile = document.getElementById('documentFile').files[0];
 
-async function uploadDocument(boatId, file, documentName) {
+    if (!documentName) {
+        alert('Por favor ingresa un nombre para el documento');
+        return;
+    }
+
+    if (!documentFile) {
+        alert('Por favor selecciona un archivo');
+        return;
+    }
+
+    // Check file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (documentFile.size > maxSize) {
+        alert('El archivo es demasiado grande. El tamaño máximo permitido es 10MB.');
+        return;
+    }
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', documentFile);
     formData.append('name', documentName);
 
     try {
@@ -307,39 +331,31 @@ async function uploadDocument(boatId, file, documentName) {
         });
 
         if (response.ok) {
-            loadBoatDocuments(boatId);
-            document.getElementById('documentFile').value = '';
+            // Clear form
             document.getElementById('documentName').value = '';
+            document.getElementById('documentFile').value = '';
+            // Reload documents
+            loadBoatDocuments(boatId);
+            alert('Documento subido exitosamente');
         } else {
-            showError('Error al subir el documento');
+            console.error('Failed to upload document');
+            alert('Error al subir el documento');
         }
     } catch (error) {
         console.error('Error uploading document:', error);
-        showError('Error de conexión');
+        alert('Error de conexión');
     }
 }
 
-function viewDocument(url) {
-    window.open(url, '_blank');
-}
-
-function downloadDocument(url, name) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function renameDocument(documentId, currentName) {
+// Edit document name
+function editDocumentName(boatId, documentId, currentName) {
     const newName = prompt('Nuevo nombre del documento:', currentName);
-    if (newName && newName.trim() && newName !== currentName) {
-        updateDocumentName(currentBoatId, documentId, newName.trim());
+    if (newName && newName.trim() !== currentName) {
+        updateDocumentName(boatId, documentId, newName.trim());
     }
 }
 
+// Update document name
 async function updateDocumentName(boatId, documentId, newName) {
     try {
         const response = await fetch(`/api/v1/owner/boats/${boatId}/documents/${documentId}?name=${encodeURIComponent(newName)}`, {
@@ -349,34 +365,72 @@ async function updateDocumentName(boatId, documentId, newName) {
 
         if (response.ok) {
             loadBoatDocuments(boatId);
+            alert('Nombre del documento actualizado');
         } else {
-            showError('Error al renombrar el documento');
+            console.error('Failed to update document name');
+            alert('Error al actualizar el nombre');
         }
     } catch (error) {
-        console.error('Error updating document:', error);
-        showError('Error de conexión');
+        console.error('Error updating document name:', error);
+        alert('Error de conexión');
     }
 }
 
-async function deleteDocument(documentId) {
-    if (!confirm('¿Está seguro de que desea eliminar este documento?')) {
-        return;
+// View document
+function viewDocument(url) {
+    window.open(url, '_blank');
+}
+
+// Download document
+async function downloadDocument(filename, documentName) {
+    try {
+        const response = await fetch(`/api/v1/boat/documents/${filename}`, {
+            headers: {
+                'Authorization': getAuthHeaders()['Authorization']
+            }
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } else {
+            console.error('Failed to download document');
+            alert('Error al descargar el documento');
+        }
+    } catch (error) {
+        console.error('Error downloading document:', error);
+        alert('Error de conexión');
     }
+}
+
+// Delete document
+async function deleteDocument(boatId, documentId) {
+    if (!confirm('¿Estás seguro de eliminar este documento?')) return;
 
     try {
-        const response = await fetch(`/api/v1/owner/boats/${currentBoatId}/documents/${documentId}`, {
+        const response = await fetch(`/api/v1/owner/boats/${boatId}/documents/${documentId}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
-            loadBoatDocuments(currentBoatId);
+            loadBoatDocuments(boatId);
+            alert('Documento eliminado exitosamente');
         } else {
-            showError('Error al eliminar el documento');
+            console.error('Failed to delete document');
+            alert('Error al eliminar el documento');
         }
     } catch (error) {
         console.error('Error deleting document:', error);
-        showError('Error de conexión');
+        alert('Error de conexión');
     }
 }
 
@@ -410,9 +464,6 @@ function changePage(page) {
     }
 }
 
-// Global reference for HTML onclick handlers
-window.changePage = changePage;
-
 // Close modal when clicking outside
 window.onclick = function(event) {
     const modal = document.getElementById('documentsModal');
@@ -421,7 +472,14 @@ window.onclick = function(event) {
     }
 }
 
-// Export functions for potential use in other scripts
+// Export functions for HTML onclick handlers
 window.logout = logout;
 window.viewBoatDocuments = viewBoatDocuments;
+window.openDocumentsModal = openDocumentsModal;
+window.closeDocumentsModal = closeDocumentsModal;
+window.uploadDocument = uploadDocument;
+window.downloadDocument = downloadDocument;
+window.editDocumentName = editDocumentName;
+window.deleteDocument = deleteDocument;
+window.viewDocument = viewDocument;
 window.changePage = changePage;

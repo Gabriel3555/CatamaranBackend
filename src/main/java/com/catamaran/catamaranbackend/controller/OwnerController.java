@@ -493,6 +493,7 @@ public class OwnerController {
             BoatDocumentEntity document = BoatDocumentEntity.builder()
                     .name(documentName)
                     .url(webUrl)
+                    .boat(boat)
                     .build();
 
             BoatDocumentEntity savedDocument = boatDocumentRepository.save(document);
