@@ -379,15 +379,37 @@ function viewPayment(id) {
 }
 
 // Delete payment
-function deletePayment(id) {
+async function deletePayment(id) {
     if (!confirm('¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer.')) return;
 
-    // For now, just remove from local array
-    // In a real app, this would call the API
-    payments = payments.filter(payment => payment.id !== id);
-    filteredPayments = filteredPayments.filter(payment => payment.id !== id);
-    updateMetrics();
-    renderPayments();
+    try {
+        const response = await fetch(`/api/v1/payments/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            // Remove from local arrays only after successful deletion from database
+            payments = payments.filter(payment => payment.id !== id);
+            filteredPayments = filteredPayments.filter(payment => payment.id !== id);
+
+            // Reload general statistics since total payments count changed
+            await loadGeneralStatistics();
+
+            // Update metrics and re-render the table
+            updateMetrics();
+            renderPayments();
+
+            alert('Pago eliminado exitosamente.');
+        } else {
+            const errorText = await response.text();
+            console.error('Error deleting payment:', errorText);
+            alert('Error al eliminar el pago. Por favor, inténtalo de nuevo.');
+        }
+    } catch (error) {
+        console.error('Error deleting payment:', error);
+        alert('Error de conexión. Por favor, inténtalo de nuevo.');
+    }
 }
 
 // Handle form submission

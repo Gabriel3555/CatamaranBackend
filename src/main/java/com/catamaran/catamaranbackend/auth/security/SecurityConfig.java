@@ -40,7 +40,6 @@ public class SecurityConfig  {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtTokenValidator(jwtUtils), BasicAuthenticationFilter.class)
                 .authorizeHttpRequests(http -> {
-                     // Public endpoints - must be first
                      http.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                      http.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll();
                      http.requestMatchers(HttpMethod.POST, "/api/v1/auth/forgot-password").permitAll();
@@ -65,10 +64,7 @@ public class SecurityConfig  {
                      ).permitAll();
                     http.requestMatchers(HttpMethod.GET, "/api/v1/boat/documents/**").permitAll();
                     http.requestMatchers("/api/v1/payments/*/download-receipt").authenticated();
-                     // Authenticated endpoints
                      http.requestMatchers("/api/v1/boat/documents/**").authenticated();
-                     
-                     // Role-specific endpoints - specific rules before general ones
                      http.requestMatchers("/api/v1/reports/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers(HttpMethod.GET, "/api/v1/auth/{id}").hasAnyAuthority("ROLE_PROPIETARIO", "ROLE_ADMIN");
@@ -77,12 +73,8 @@ public class SecurityConfig  {
                      http.requestMatchers("/api/v1/auth/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/payments/**").hasAuthority("ROLE_ADMIN");
                      http.requestMatchers("/api/v1/maintenances/**").hasAuthority("ROLE_ADMIN");
-                     // Owner endpoints - must come before boat endpoints to avoid conflicts
                      http.requestMatchers("/api/v1/owner/**").hasAuthority("ROLE_PROPIETARIO");
-                     // Boat endpoints - admin only (but not owner boats)
                      http.requestMatchers("/api/v1/boat/**").hasAuthority("ROLE_ADMIN");
-                     
-                     // Default - require authentication
                      http.anyRequest().authenticated();
                  });
 
