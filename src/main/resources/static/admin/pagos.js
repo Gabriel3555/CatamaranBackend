@@ -31,7 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     setupEventListeners();
     loadBoats();
-    loadPayments();
+    
+    // Cargar pagos con filtro "Por pagar" por defecto
+    const statusFilter = document.getElementById('statusFilter');
+    const defaultStatus = statusFilter ? statusFilter.value : 'POR_PAGAR';
+    loadPayments(0, '', 'all', 'all', defaultStatus);
+    
     loadGeneralStatistics();
 
     // Add cache busting parameter to avoid cached JS
@@ -207,7 +212,10 @@ function formatPrice(price) {
 // Format payment reason for display
 function formatPaymentReason(reason) {
     const reasonMap = {
-        'ADMIN': 'Administrativo'
+        'ADMIN': 'Administrativo',
+        'CUOTA': 'Cuota',
+        'PAGO': 'Pago',
+        'MANTENIMIENTO': 'Mantenimiento'
     };
     return reasonMap[reason] || reason;
 }
@@ -358,7 +366,7 @@ function openAddModal() {
     paymentForm.reset();
 
     // Set default values
-    document.getElementById('paymentReason').value = 'ADMIN';
+    document.getElementById('paymentReason').value = 'CUOTA';
     const now = new Date();
     const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
     document.getElementById('paymentDate').value = localDateTime.toISOString().slice(0, 16);

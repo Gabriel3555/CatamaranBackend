@@ -46,6 +46,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Maneja excepciones de email ya existente
+     */
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailAlreadyExistsException(
+            EmailAlreadyExistsException ex, WebRequest request) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS");
+    }
+
+    /**
+     * Maneja excepciones de username ya existente
+     */
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleUsernameAlreadyExistsException(
+            UsernameAlreadyExistsException ex, WebRequest request) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT, "USERNAME_ALREADY_EXISTS");
+    }
+
+    /**
      * Maneja excepciones de credenciales inválidas de Spring Security
      */
     @ExceptionHandler(BadCredentialsException.class)

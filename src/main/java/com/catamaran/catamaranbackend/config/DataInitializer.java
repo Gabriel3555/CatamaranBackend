@@ -24,9 +24,6 @@ import java.util.UUID;
 public class DataInitializer {
 
     private final UserRepositoryJpa userRepository;
-    private final BoatRepository boatRepository;
-    private final MaintananceRepository maintananceRepository;
-    private final PaymentRepository paymentRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Bean

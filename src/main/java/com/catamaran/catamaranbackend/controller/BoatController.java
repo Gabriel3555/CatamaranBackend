@@ -297,18 +297,21 @@ public class BoatController {
     public ResponseEntity<BoatEntity> assignOwner(
             @PathVariable Long boatId,
             @PathVariable Long ownerId,
-            @RequestParam double installmentAmount,
-            @RequestParam int frequency) {
+            @RequestParam int numberOfInstallments) {
 
         try {
             // Validate parameters first
-            if (installmentAmount <= 0) {
-                System.err.println("Invalid installment amount: " + installmentAmount);
-                return ResponseEntity.badRequest().build();
+            int[] validInstallments = {1, 6, 12, 24, 48, 72};
+            boolean isValid = false;
+            for (int valid : validInstallments) {
+                if (numberOfInstallments == valid) {
+                    isValid = true;
+                    break;
+                }
             }
 
-            if (frequency < 1 || frequency > 11) {
-                System.err.println("Invalid frequency: " + frequency);
+            if (!isValid) {
+                System.err.println("Invalid number of installments: " + numberOfInstallments);
                 return ResponseEntity.badRequest().build();
             }
 
@@ -342,18 +345,10 @@ public class BoatController {
                 return ResponseEntity.badRequest().build();
             }
 
-            // Calculate number of installments
-            int numberOfInstallments = (int) Math.ceil(boatPrice / installmentAmount);
-            if (numberOfInstallments <= 0) {
-                numberOfInstallments = 1;
-            }
-
             System.out.println("Assigning owner to boat:");
             System.out.println("  Boat ID: " + boatId);
             System.out.println("  Owner ID: " + ownerId);
             System.out.println("  Boat Price: " + boatPrice);
-            System.out.println("  Installment Amount: " + installmentAmount);
-            System.out.println("  Frequency: " + frequency);
             System.out.println("  Number of Installments: " + numberOfInstallments);
 
             // Assign owner to boat
@@ -372,21 +367,34 @@ public class BoatController {
             LocalDateTime currentDate = LocalDateTime.now();
             List<PaymentEntity> payments = new ArrayList<>();
 
-            for (int i = 0; i < numberOfInstallments; i++) {
-                double currentInstallmentAmount = installmentAmount;
+            // Calculate amount per installment
+            double amountPerInstallment = boatPrice / numberOfInstallments;
 
-                // Last installment: adjust to the remaining amount
+            for (int i = 0; i < numberOfInstallments; i++) {
+                double currentInstallmentAmount = amountPerInstallment;
+
+                // Last installment: adjust to the remaining amount to avoid rounding errors
                 if (i == numberOfInstallments - 1) {
-                    double totalPaid = (numberOfInstallments - 1) * installmentAmount;
+                    double totalPaid = (numberOfInstallments - 1) * amountPerInstallment;
                     currentInstallmentAmount = boatPrice - totalPaid;
                 }
 
-                // Ensure installment amount is valid
-                if (currentInstallmentAmount <= 0) {
-                    currentInstallmentAmount = installmentAmount;
+                // Calculate payment date based on number of installments
+                LocalDateTime paymentDate;
+                if (numberOfInstallments == 1) {
+                    // Contado: pago inmediato
+                    paymentDate = currentDate;
+                } else if (numberOfInstallments <= 12) {
+                    // 6 o 12 cuotas: pagos mensuales
+                    // Para 6 cuotas: cada 2 meses, para 12 cuotas: cada mes
+                    int monthsBetween = 12 / numberOfInstallments;
+                    paymentDate = currentDate.plusMonths((long) i * monthsBetween);
+                } else {
+                    // 24, 48 o 72 cuotas: pagos en días
+                    // Distribuir en aproximadamente 12 meses (365 días)
+                    int daysBetween = 365 / numberOfInstallments;
+                    paymentDate = currentDate.plusDays((long) i * daysBetween);
                 }
-
-                LocalDateTime paymentDate = currentDate.plusMonths((long) i * frequency);
 
                 PaymentEntity payment = PaymentEntity.builder()
                         .mount(currentInstallmentAmount)

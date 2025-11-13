@@ -220,10 +220,37 @@ public class PaymentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<PaymentEntity> updatePayment(@PathVariable Long id, @RequestBody PaymentEntity payment) {
-        if (!paymentRepository.existsById(id)) {
+        Optional<PaymentEntity> existingPaymentOpt = paymentRepository.findById(id);
+        if (existingPaymentOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
+        PaymentEntity existingPayment = existingPaymentOpt.get();
+        PaymentStatus oldStatus = existingPayment.getStatus();
         payment.setId(id);
+        
+        // Asegurar que el barco esté asociado (puede venir del request body o del pago existente)
+        if (payment.getBoat() == null && existingPayment.getBoat() != null) {
+            payment.setBoat(existingPayment.getBoat());
+        }
+        if (payment.getReason() == null && existingPayment.getReason() != null) {
+            payment.setReason(existingPayment.getReason());
+        }
+        
+        // Si el estado cambia a PAGADO y es una cuota o pago, actualizar balance del barco
+        // Los pagos administrativos (ADMIN) se registran pero NO actualizan el balance
+        if (payment.getStatus() == PaymentStatus.PAGADO && 
+            oldStatus != PaymentStatus.PAGADO &&
+            (payment.getReason() == ReasonPayment.PAGO || payment.getReason() == ReasonPayment.CUOTA)) {
+            BoatEntity boat = payment.getBoat();
+            if (boat != null) {
+                double currentBalance = boat.getBalance() != null ? boat.getBalance() : 0.0;
+                double paymentAmount = payment.getMount() != null ? payment.getMount() : 0.0;
+                boat.setBalance(currentBalance + paymentAmount);
+                boatRepository.save(boat);
+            }
+        }
+        
         PaymentEntity updatedPayment = paymentRepository.save(payment);
         return ResponseEntity.ok(updatedPayment);
     }
@@ -276,10 +303,13 @@ public class PaymentController {
             payment.setInvoice_url(fileName);
             payment.setStatus(PaymentStatus.PAGADO);
 
-            if (payment.getReason() == ReasonPayment.PAGO) {
+            // Actualizar balance del barco solo cuando se paga una cuota o un pago
+            // Los pagos administrativos (ADMIN) se registran pero NO actualizan el balance
+            if (payment.getReason() == ReasonPayment.PAGO || payment.getReason() == ReasonPayment.CUOTA) {
                 BoatEntity boat = payment.getBoat();
                 if (boat != null) {
-                    boat.setBalance(boat.getBalance() + payment.getMount());
+                    double currentBalance = boat.getBalance() != null ? boat.getBalance() : 0.0;
+                    boat.setBalance(currentBalance + payment.getMount());
                     boatRepository.save(boat);
                 }
             }

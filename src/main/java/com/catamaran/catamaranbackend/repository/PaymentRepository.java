@@ -16,7 +16,8 @@ import java.util.List;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<PaymentEntity, Long>, JpaSpecificationExecutor<PaymentEntity> {
-    Page<PaymentEntity> findByBoatId(Long boatId, Pageable pageable);
+    @Query("SELECT p FROM PaymentEntity p WHERE p.boat.id = :boatId")
+    Page<PaymentEntity> findByBoatId(@Param("boatId") Long boatId, Pageable pageable);
 
     Page<PaymentEntity> findByReason(ReasonPayment reason, Pageable pageable);
 

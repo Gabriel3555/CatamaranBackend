@@ -464,35 +464,27 @@ async function assignOwner(boatId) {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="installmentAmount">Monto de Cuota (COP)</label>
-                    <input type="number" id="installmentAmount" min="0" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label for="frequency">Frecuencia de Pago (meses entre cuotas)</label>
-                    <select id="frequency" required>
-                        <option value="1">Cada mes</option>
-                        <option value="2">Cada 2 meses</option>
-                        <option value="3">Cada 3 meses</option>
-                        <option value="4">Cada 4 meses</option>
-                        <option value="5">Cada 5 meses</option>
-                        <option value="6">Cada 6 meses</option>
-                        <option value="7">Cada 7 meses</option>
-                        <option value="8">Cada 8 meses</option>
-                        <option value="9">Cada 9 meses</option>
-                        <option value="10">Cada 10 meses</option>
-                        <option value="11">Cada 11 meses</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="manualCheckbox">
                         <span class="checkmark"></span>
-                        Manual
+                        Asignación Manual (sin crear pagos automáticos)
                     </label>
                 </div>
                 <div class="form-group">
-                    <label>Número de Cuotas Calculado</label>
-                    <input type="text" id="calculatedInstallments" readonly style="background-color: #f5f5f5;">
+                    <label for="installmentPlan">Plan de Pago</label>
+                    <select id="installmentPlan">
+                        <option value="">Seleccionar plan de pago...</option>
+                        <option value="1">Contado</option>
+                        <option value="6">6 Cuotas</option>
+                        <option value="12">12 Cuotas</option>
+                        <option value="24">24 Cuotas</option>
+                        <option value="48">48 Cuotas</option>
+                        <option value="72">72 Cuotas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Monto por Cuota Calculado</label>
+                    <input type="text" id="calculatedAmount" readonly style="background-color: #f5f5f5;">
                 </div>
             </div>
             <div class="modal-footer">
@@ -507,27 +499,48 @@ async function assignOwner(boatId) {
     ownerModal.style.display = 'block';
 
     // Add event listeners for calculation
-    const installmentAmountInput = document.getElementById('installmentAmount');
-    const frequencySelect = document.getElementById('frequency');
-    const calculatedInstallmentsInput = document.getElementById('calculatedInstallments');
+    const installmentPlanSelect = document.getElementById('installmentPlan');
+    const calculatedAmountInput = document.getElementById('calculatedAmount');
+    const manualCheckbox = document.getElementById('manualCheckbox');
 
-    function calculateInstallments() {
-        const installmentAmount = parseFloat(installmentAmountInput.value) || 0;
-        const boatPrice = boat.price || 0;
-
-        if (installmentAmount > 0) {
-            const numInstallments = Math.ceil(boatPrice / installmentAmount);
-            calculatedInstallmentsInput.value = numInstallments;
+    function togglePlanFields() {
+        const isManual = manualCheckbox.checked;
+        installmentPlanSelect.disabled = isManual;
+        calculatedAmountInput.disabled = isManual;
+        
+        if (isManual) {
+            calculatedAmountInput.value = 'Asignación manual - no se crearán pagos automáticos';
+            installmentPlanSelect.value = '';
         } else {
-            calculatedInstallmentsInput.value = '';
+            calculateAmount();
         }
     }
 
-    installmentAmountInput.addEventListener('input', calculateInstallments);
-    frequencySelect.addEventListener('change', calculateInstallments);
+    function calculateAmount() {
+        if (manualCheckbox.checked) {
+            return; // Don't calculate if manual is selected
+        }
 
-    // Initial calculation
-    calculateInstallments();
+        const numberOfInstallments = parseInt(installmentPlanSelect.value) || 0;
+        const boatPrice = boat.price || 0;
+
+        if (numberOfInstallments > 0 && boatPrice > 0) {
+            if (numberOfInstallments === 1) {
+                calculatedAmountInput.value = formatPrice(boatPrice) + ' (Contado)';
+            } else {
+                const amountPerInstallment = boatPrice / numberOfInstallments;
+                calculatedAmountInput.value = formatPrice(amountPerInstallment) + ` (${numberOfInstallments} cuotas)`;
+            }
+        } else {
+            calculatedAmountInput.value = '';
+        }
+    }
+
+    manualCheckbox.addEventListener('change', togglePlanFields);
+    installmentPlanSelect.addEventListener('change', calculateAmount);
+
+    // Initial setup
+    togglePlanFields();
 }
 
 // Delete boat
@@ -679,8 +692,7 @@ async function saveBoat(event) {
 async function confirmAssignOwner(boatId) {
     const ownerSelect = document.getElementById('ownerSelect');
     const manualCheckbox = document.getElementById('manualCheckbox');
-    const installmentAmountInput = document.getElementById('installmentAmount');
-    const frequencySelect = document.getElementById('frequency');
+    const installmentPlanSelect = document.getElementById('installmentPlan');
 
     const ownerId = ownerSelect.value;
     const isManualAssignment = manualCheckbox && manualCheckbox.checked;
@@ -692,16 +704,16 @@ async function confirmAssignOwner(boatId) {
 
     // If manual assignment is selected, no need to validate payment fields
     if (!isManualAssignment) {
-        const installmentAmount = parseFloat(installmentAmountInput.value);
-        const frequency = parseInt(frequencySelect.value);
+        const numberOfInstallments = parseInt(installmentPlanSelect.value);
 
-        if (!installmentAmount || installmentAmount <= 0) {
-            alert('Por favor ingresa un monto de cuota válido');
+        if (!numberOfInstallments || numberOfInstallments <= 0) {
+            alert('Por favor selecciona un plan de pago válido');
             return;
         }
 
-        if (!frequency || frequency < 1 || frequency > 11) {
-            alert('Por favor selecciona una frecuencia válida');
+        const validInstallments = [1, 6, 12, 24, 48, 72];
+        if (!validInstallments.includes(numberOfInstallments)) {
+            alert('Por favor selecciona un plan de pago válido (Contado, 6, 12, 24, 48 o 72 cuotas)');
             return;
         }
     }
@@ -719,9 +731,8 @@ async function confirmAssignOwner(boatId) {
             });
         } else {
             // Automatic assignment with payment creation
-            const installmentAmount = parseFloat(installmentAmountInput.value);
-            const frequency = parseInt(frequencySelect.value);
-            url = `/api/v1/boat/${boatId}/owner/${ownerId}?installmentAmount=${installmentAmount}&frequency=${frequency}`;
+            const numberOfInstallments = parseInt(installmentPlanSelect.value);
+            url = `/api/v1/boat/${boatId}/owner/${ownerId}?numberOfInstallments=${numberOfInstallments}`;
             response = await fetch(url, {
                 method: 'PUT',
                 headers: getAuthHeaders()

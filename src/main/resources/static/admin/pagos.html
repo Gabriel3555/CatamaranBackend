@@ -100,6 +100,8 @@
                         <option value="all">Todas las razones</option>
                         <option value="PAGO">Pago</option>
                         <option value="MANTENIMIENTO">Mantenimiento</option>
+                        <option value="ADMIN">Administrativo</option>
+                        <option value="CUOTA">Cuota</option>
                     </select>
                     <select id="monthFilter" class="filter-select">
                         <option value="all">Todos los meses</option>
@@ -109,7 +111,7 @@
                     </select>
                     <select id="statusFilter" class="filter-select">
                         <option value="all">Todos</option>
-                        <option value="POR_PAGAR">Por pagar</option>
+                        <option value="POR_PAGAR" selected>Por pagar</option>
                         <option value="PAGADO">Pagado</option>
                     </select>
                     <button onclick="openAddModal()" class="add-btn">
@@ -181,6 +183,7 @@
                             <label for="paymentReason">Razón del Pago</label>
                             <select id="paymentReason" name="reason" required>
                                 <option value="ADMIN">Administrativo</option>
+                                <option value="CUOTA">Cuota</option>
                             </select>
                         </div>
                         <div class="form-group">

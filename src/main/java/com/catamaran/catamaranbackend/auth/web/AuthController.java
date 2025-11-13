@@ -10,6 +10,8 @@ import com.catamaran.catamaranbackend.auth.application.service.PasswordRecoveryS
 import com.catamaran.catamaranbackend.auth.application.service.UserDetailsServiceImp;
 import com.catamaran.catamaranbackend.auth.infrastructure.entity.UserEntity;
 import com.catamaran.catamaranbackend.auth.infrastructure.repository.UserRepositoryJpa;
+import com.catamaran.catamaranbackend.auth.security.EmailAlreadyExistsException;
+import com.catamaran.catamaranbackend.auth.security.UsernameAlreadyExistsException;
 import com.catamaran.catamaranbackend.domain.Role;
 import com.catamaran.catamaranbackend.repository.BoatRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -139,12 +141,51 @@ public class AuthController {
     @PostMapping("/create-owner")
     public ResponseEntity<?> createOwner(@RequestBody UserEntity request) {
         try {
+            // Validar formato de email
+            String email = request.getEmail();
+            if (email == null || email.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "El email es requerido"));
+            }
+
+            // Validar formato de email usando expresión regular más estricta
+            // Patrón: debe tener al menos un carácter antes del @, un @, y un dominio válido
+            String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+            if (!email.trim().matches(emailRegex)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "El formato del email no es válido. Debe tener el formato: ejemplo@dominio.com"));
+            }
+
+            // Validar formato de username
+            String username = request.getUsername();
+            if (username == null || username.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "El username es requerido"));
+            }
+
+            // Validar formato de username (solo letras, números, guiones y guiones bajos, entre 3 y 20 caracteres)
+            String usernameRegex = "^[a-zA-Z0-9_-]{3,20}$";
+            if (!username.trim().matches(usernameRegex)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "El formato del username no es válido. Debe tener entre 3 y 20 caracteres y solo puede contener letras, números, guiones y guiones bajos."));
+            }
+
+            // Verificar si el email ya existe
+            if (userRepository.findByEmail(email.trim().toLowerCase()).isPresent()) {
+                throw new EmailAlreadyExistsException("El email '" + email + "' ya está registrado. Por favor, use otro email.");
+            }
+
+            // Verificar si el username ya existe
+            if (userRepository.findByUsername(username.trim()).isPresent()) {
+                throw new UsernameAlreadyExistsException("El username '" + username + "' ya está registrado. Por favor, use otro username.");
+            }
+
             // Set default encrypted password
             String encryptedPassword = passwordEncoder.encode("owner123");
 
             UserEntity owner = UserEntity.builder()
-                    .email(request.getEmail())
-                    .username(request.getUsername())
+                    .email(email.trim().toLowerCase())
+                    .username(username.trim())
                     .uniqueId(UUID.randomUUID())
                     .fullName(request.getFullName())
                     .phoneNumber(request.getPhoneNumber())
@@ -155,6 +196,9 @@ public class AuthController {
 
             UserEntity savedOwner = userRepository.save(owner);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedOwner);
+        } catch (EmailAlreadyExistsException | UsernameAlreadyExistsException e) {
+            // Estas excepciones serán manejadas por el GlobalExceptionHandler
+            throw e;
         } catch (DataIntegrityViolationException e) {
             String errorMessage = "El email o username ya existe";
             if (e.getMessage().contains("users_email_key")) {

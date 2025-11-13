@@ -365,6 +365,19 @@ async function deleteOwner(id) {
     }
 }
 
+// Validar formato de email
+function isValidEmail(email) {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+}
+
+// Validar formato de username
+function isValidUsername(username) {
+    // Solo letras, números, guiones y guiones bajos, entre 3 y 20 caracteres
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+    return usernameRegex.test(username);
+}
+
 // Handle form submission
 async function saveOwner(event) {
     if (event && typeof event.preventDefault === 'function') {
@@ -372,11 +385,36 @@ async function saveOwner(event) {
     }
 
     const formData = new FormData(ownerForm);
+    const email = formData.get('email');
+    const username = formData.get('username');
+    
+    // Validar formato de email en el frontend
+    if (!email || !email.trim()) {
+        alert('El email es requerido');
+        return;
+    }
+    
+    if (!isValidEmail(email.trim())) {
+        alert('El formato del email no es válido. Debe tener el formato: ejemplo@dominio.com');
+        return;
+    }
+    
+    // Validar formato de username en el frontend
+    if (!username || !username.trim()) {
+        alert('El username es requerido');
+        return;
+    }
+    
+    if (!isValidUsername(username.trim())) {
+        alert('El formato del username no es válido. Debe tener entre 3 y 20 caracteres y solo puede contener letras, números, guiones y guiones bajos.');
+        return;
+    }
+    
     const ownerData = {
         fullName: formData.get('fullName'),
-        email: formData.get('email'),
+        email: email.trim(),
         phoneNumber: formData.get('phoneNumber'),
-        username: formData.get('username'),
+        username: username.trim(),
         role: 'PROPIETARIO'
     };
 
@@ -414,10 +452,26 @@ async function saveOwner(event) {
             if (response.ok) {
                 loadOwners(); // Reload to ensure table reflects latest server data
                 loadOwnersStats(); // Reload general stats
+                alert('Propietario creado exitosamente');
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Failed to create owner:', errorData);
-                alert(`Error al crear propietario: ${errorData.message || 'Error desconocido'}`);
+                
+                // Mostrar mensaje de error más descriptivo
+                let errorMessage = errorData.message || 'Error desconocido';
+                
+                // Manejar diferentes tipos de errores
+                if (errorData.errorCode === 'EMAIL_ALREADY_EXISTS') {
+                    errorMessage = errorData.message || 'El email ya está registrado';
+                } else if (errorData.errorCode === 'USERNAME_ALREADY_EXISTS') {
+                    errorMessage = errorData.message || 'El username ya está registrado';
+                } else if (response.status === 400) {
+                    errorMessage = errorData.message || 'Datos inválidos. Verifica el formato del email y username.';
+                } else if (response.status === 409) {
+                    errorMessage = errorData.message || 'El email o username ya está registrado';
+                }
+                
+                alert(`Error al crear propietario: ${errorMessage}`);
                 return;
             }
         }
